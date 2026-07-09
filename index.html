@@ -1010,20 +1010,31 @@ function buildReportHtml(tariff, company){
   const special = (tariff.variant==="free" || tariff.variant==="none");
 
   // цены Битрикс24 (₽/мес за всех пользователей, со скидкой -30%) и подписка BitrixGPT (₽/год)
-  const TAR_M   = {free:0, basic:1743, standard:4893, pro:9793, enterprise:23793};
-  const TAR_IDX = {free:0, none:0, basic:1, standard:2, pro:3, enterprise:4};
-  const TAR_NAME= {free:"Бесплатный", basic:"Базовый", standard:"Стандартный", pro:"Профессиональный", enterprise:"Энтерпрайз"};
-  const SUB_Y   = {basic:9600, standard:28800, pro:57600, enterprise:130560};
+  // Энтерпрайз — по ступеням числа пользователей (250/500/1000/2000/5000/10000)
+  const TAR_M   = {free:0, basic:1743, standard:4893, pro:9793, enterprise:23793,
+                   ent250:23793, ent500:41993, ent1000:69993, ent2000:139993, ent5000:349993, ent10000:699993};
+  const TAR_IDX = {free:0, none:0, basic:1, standard:2, pro:3, enterprise:4,
+                   ent250:4, ent500:5, ent1000:6, ent2000:7, ent5000:8, ent10000:9};
+  const TAR_NAME= {free:"Бесплатный", basic:"Базовый", standard:"Стандартный", pro:"Профессиональный", enterprise:"Энтерпрайз",
+                   ent250:"Энтерпрайз (250)", ent500:"Энтерпрайз (500)", ent1000:"Энтерпрайз (1000)", ent2000:"Энтерпрайз (2000)", ent5000:"Энтерпрайз (5000)", ent10000:"Энтерпрайз (10000)"};
+  const SUB_Y   = {basic:9600, standard:28800, pro:57600, enterprise:130560,
+                   ent250:130560, ent500:230400, ent1000:384000, ent2000:768000, ent5000:1920000, ent10000:3840000};
 
   const empEl = document.querySelector('.comp-in[data-comp="empCount"]');
   const employees = empEl ? parseNum(empEl.value) : 0;
   const agentsUsed = scenarios.some(sc => state[sc.id].selected && sc.agents);
 
-  // рекомендуемый тариф: агенты или 100+ сотрудников -> Профессиональный; 50-99 -> Стандартный; иначе Базовый
+  // рекомендуемый тариф: не ниже «Профессионального» (нужен для BitrixGPT/агентов),
+  // а при большем числе пользователей — по ступеням Энтерпрайза (см. таблицу цен)
   let targetKey;
-  if(special || agentsUsed || employees>=100) targetKey = "pro";
-  else if(employees>=50) targetKey = "standard";
-  else targetKey = "basic";
+  if(employees>5000)      targetKey = "ent10000";
+  else if(employees>2000) targetKey = "ent5000";
+  else if(employees>1000) targetKey = "ent2000";
+  else if(employees>500)  targetKey = "ent1000";
+  else if(employees>250)  targetKey = "ent500";
+  else if(employees>100)  targetKey = "ent250";
+  else                    targetKey = "pro";
+  const isEnt = targetKey.startsWith("ent");   // Энтерпрайз-ступень (тариф считаем уже подключённым)
 
   const curIdx = TAR_IDX[tariff.id];
   const tgtIdx = TAR_IDX[targetKey];
@@ -1033,7 +1044,10 @@ function buildReportHtml(tariff, company){
 
   // доплата за тариф
   let payTariffY, tariffLabel;
-  if(special || curIdx===0){                       // бесплатный / нет Битрикс24 — полная стоимость
+  if(isEnt){                                       // Энтерпрайз — тариф предполагаем уже подключённым, в затраты только подписка
+    payTariffY = 0;
+    tariffLabel = "Тариф «"+tgtName+"» — предполагается уже подключён";
+  } else if(special || curIdx===0){                // бесплатный / нет Битрикс24 — полная стоимость
     payTariffY = tgtTariffY;
     tariffLabel = "Тариф «"+tgtName+"» (полная стоимость)";
   } else if(curIdx >= tgtIdx){                      // текущий тариф уже подходит
@@ -1056,7 +1070,9 @@ function buildReportHtml(tariff, company){
   }
   // рекомендация текстом
   let recommend = "";
-  if(special) recommend = tariff.variant==="free"
+  if(isEnt)
+    recommend = "Для "+groupFmt(String(employees))+" пользователей нужен тариф «"+tgtName+"». Предполагаем, что он у вас уже подключён, поэтому в затраты входит только подписка BitrixGPT.";
+  else if(special) recommend = tariff.variant==="free"
     ? "На бесплатном тарифе ИИ-агенты BitrixGPT недоступны — нужен платный тариф «Профессиональный». В расчёте — его полная стоимость плюс подписка."
     : "У вас пока нет Битрикс24. Для ИИ-агентов нужен тариф «Профессиональный» — в расчёте его полная стоимость плюс подписка.";
   else if(agentsUsed && curIdx < TAR_IDX.pro)
@@ -1080,7 +1096,9 @@ function buildReportHtml(tariff, company){
 
   // строки затрат
   let costRows = "<div class='trow'><span>Рекомендуемый тариф Bitrix24 — «"+tgtName+"»</span><span class='tv'>"+fmtMoney(TAR_M[targetKey])+"/мес · "+fmtMoney(tgtTariffY)+"/год</span></div>";
-  if(special || curIdx===0){
+  if(isEnt){                                       // Энтерпрайз — тариф уже есть, в затраты не входит
+    costRows += "<div class='trow'><span>Тариф «"+tgtName+"» — предполагается уже подключён</span><span class='tv'>0 ₽</span></div>";
+  } else if(special || curIdx===0){
     // полная стоимость тарифа уже указана в строке выше — отдельной строкой не дублируем
   } else if(payTariffY>0){
     costRows += "<div class='trow'><span>Доплата за тариф с «"+TAR_NAME[tariff.id]+"» до «"+tgtName+"»</span><span class='tv'>"+fmtMoney(payTariffY)+"/год</span></div>";
