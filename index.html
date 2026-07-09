@@ -1235,25 +1235,65 @@ function buildReportHtml(tariff, company){
       + "</div></div>";
   }
 
-  // 4) CTA «Дальнейшие шаги» — версия calc: самоподключение + заявка на помощь.
-  //    В serv-версии заменяется на карточку менеджера (apply_integrator.py). Маркер: CTA_BLOCK.
-  const CTA_SELF = "https://helpdesk.bitrix24.ru/open/28790658/";   // инструкция по подключению
-  const CTA_HELP = "https://www.bitrix24.ru/register/ai.php";       // форма заявки на помощь
-  const ctaBlock = /* CTA_BLOCK */ "<section class='cta-sec'><p class='sec-eyebrow'>Как подключить BitrixGPT</p>"
-    + "<div class='cta-grid'>"
-    + "<div class='cta-card primary'>"
-      + "<div class='cta-h'><span class='cta-i'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M13 2 3 14h7l-1 8 10-12h-7z'/></svg></span>Подключить самостоятельно</div>"
-      + "<div class='cta-p'>Пошаговая инструкция по подключению BitrixGPT — можно настроить самим, без ожидания.</div>"
-      + "<a class='cta-btn' href='"+CTA_SELF+"' target='_blank' rel='noopener'>Открыть инструкцию <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12h14M13 6l6 6-6 6'/></svg></a>"
-      + "<div class='cta-qr'><span class='qrbox'>"+makeQrSvg(CTA_SELF)+"</span><span class='cta-cap'>Наведите камеру телефона — откроется инструкция по подключению</span></div>"
-    + "</div>"
-    + "<div class='cta-card'>"
-      + "<div class='cta-h'><span class='cta-i alt'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg></span>Нужна помощь с внедрением</div>"
-      + "<div class='cta-p'>Поможем подобрать сценарии и настроить под ваши процессы. Оставьте заявку — специалисты Битрикс24 свяжутся с вами.</div>"
-      + "<a class='cta-btn sec' href='"+CTA_HELP+"' target='_blank' rel='noopener'>Оставить заявку</a>"
-      + "<div class='cta-qr'><span class='qrbox'>"+makeQrSvg(CTA_HELP)+"</span><span class='cta-cap'>Скан — откроется форма заявки на помощь</span></div>"
-    + "</div>"
-    + "</div></section>";
+  // 4) CTA «Дальнейшие шаги». Версия выбирается флагом CTA_VARIANT:
+  //    calc → самоподключение + заявка;  serv → карточка менеджера (apply_integrator.py меняет флаг).
+  const CTA_VARIANT = "serv";   /* карточка менеджера — данные в MANAGER ниже */
+
+  // ================================================================
+  //  ДАННЫЕ МЕНЕДЖЕРА (для serv-версии) — ВПИШИТЕ СВОИ.
+  //  Показываются в CTA-блоке отчёта; qrLink кодируется в QR-код.
+  // ================================================================
+  const MANAGER = {
+    name:     "Имя Фамилия",                        // ваше имя
+    role:     "Менеджер по внедрению BitrixGPT",     // должность
+    company:  "Ваша компания-интегратор",            // название компании (можно "")
+    phone:    "+7 (900) 000-00-00",                  // телефон (можно "")
+    email:    "manager@example.ru",                  // e-mail (можно "")
+    telegram: "@your_telegram",                      // Telegram (можно "")
+    qrLink:   "https://t.me/your_telegram"           // ссылка для QR: t.me / wa.me / сайт
+  };
+
+  const ctaBlock = (function(){
+    if(CTA_VARIANT === "serv"){
+      const ini = (MANAGER.name.split(/\s+/).map(function(w){return w[0]||"";}).join("").slice(0,2) || "?").toUpperCase();
+      const ic = "fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'";
+      const cPhone = "<svg viewBox='0 0 24 24' "+ic+"><path d='M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z'/></svg>";
+      const cMail = "<svg viewBox='0 0 24 24' "+ic+"><rect x='2' y='4' width='20' height='16' rx='2'/><path d='m22 6-10 7L2 6'/></svg>";
+      const cTg   = "<svg viewBox='0 0 24 24' "+ic+"><path d='M22 2 11 13M22 2l-7 20-4-9-9-4z'/></svg>";
+      let cont = "";
+      if(MANAGER.phone)    cont += "<a class='mgr-c' href='tel:"+esc(MANAGER.phone.replace(/[^+\d]/g,""))+"'>"+cPhone+esc(MANAGER.phone)+"</a>";
+      if(MANAGER.email)    cont += "<a class='mgr-c' href='mailto:"+esc(MANAGER.email)+"'>"+cMail+esc(MANAGER.email)+"</a>";
+      if(MANAGER.telegram) cont += "<a class='mgr-c' href='https://t.me/"+esc(MANAGER.telegram.replace(/^@/,""))+"'>"+cTg+esc(MANAGER.telegram)+"</a>";
+      return "<section class='cta-sec'><p class='sec-eyebrow'>Обсудить внедрение · ваш менеджер</p>"
+        + "<div class='mgr'>"
+        + "<div class='mgr-ava'>"+esc(ini)+"</div>"
+        + "<div class='mgr-info'><div class='mgr-name'>"+esc(MANAGER.name)+"</div>"
+        + "<div class='mgr-role'>"+esc(MANAGER.role)+(MANAGER.company?" · "+esc(MANAGER.company):"")+"</div>"
+        + "<div class='mgr-contacts'>"+cont+"</div></div>"
+        + (MANAGER.qrLink ? "<div class='mgr-qr'><span class='qrbox'>"+makeQrSvg(MANAGER.qrLink)+"</span><span class='cta-cap'>Наведите камеру — напишете менеджеру</span></div>" : "")
+        + "</div>"
+        + "<div class='mgr-foot'>Разберём выбранные сценарии, подготовим план внедрения и точную смету. Ответим в течение рабочего дня.</div>"
+        + "</section>";
+    }
+    // ---- версия calc: самоподключение + заявка на помощь ----
+    const CTA_SELF = "https://helpdesk.bitrix24.ru/open/28790658/";   // инструкция по подключению
+    const CTA_HELP = "https://www.bitrix24.ru/register/ai.php";       // форма заявки на помощь
+    return "<section class='cta-sec'><p class='sec-eyebrow'>Как подключить BitrixGPT</p>"
+      + "<div class='cta-grid'>"
+      + "<div class='cta-card primary'>"
+        + "<div class='cta-h'><span class='cta-i'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M13 2 3 14h7l-1 8 10-12h-7z'/></svg></span>Подключить самостоятельно</div>"
+        + "<div class='cta-p'>Пошаговая инструкция по подключению BitrixGPT — можно настроить самим, без ожидания.</div>"
+        + "<a class='cta-btn' href='"+CTA_SELF+"' target='_blank' rel='noopener'>Открыть инструкцию <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12h14M13 6l6 6-6 6'/></svg></a>"
+        + "<div class='cta-qr'><span class='qrbox'>"+makeQrSvg(CTA_SELF)+"</span><span class='cta-cap'>Наведите камеру телефона — откроется инструкция по подключению</span></div>"
+      + "</div>"
+      + "<div class='cta-card'>"
+        + "<div class='cta-h'><span class='cta-i alt'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg></span>Нужна помощь с внедрением</div>"
+        + "<div class='cta-p'>Поможем подобрать сценарии и настроить под ваши процессы. Оставьте заявку — специалисты Битрикс24 свяжутся с вами.</div>"
+        + "<a class='cta-btn sec' href='"+CTA_HELP+"' target='_blank' rel='noopener'>Оставить заявку</a>"
+        + "<div class='cta-qr'><span class='qrbox'>"+makeQrSvg(CTA_HELP)+"</span><span class='cta-cap'>Скан — откроется форма заявки на помощь</span></div>"
+      + "</div>"
+      + "</div></section>";
+  })();
 
   return "<!DOCTYPE html><html lang='ru'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
     + "<title>Экономический эффект BitrixGPT" + (company ? " — " + esc(company) : "") + "</title>"
@@ -1363,6 +1403,18 @@ function buildReportHtml(tariff, company){
     + ".qrbox{width:64px;height:64px;flex:none;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}"
     + ".qrbox svg{display:block}"
     + ".cta-cap{font-size:10.5px;color:var(--faint);line-height:1.45}"
+    // CTA serv — карточка менеджера
+    + ".mgr{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:18px 20px;break-inside:avoid}"
+    + ".mgr-ava{width:56px;height:56px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Unbounded,sans-serif;font-weight:800;font-size:19px;background:linear-gradient(135deg,hsl(258,52%,32%),hsl(190,52%,34%))}"
+    + ".mgr-info{flex:1;min-width:200px}"
+    + ".mgr-name{font-weight:800;font-size:17px;letter-spacing:-.01em}"
+    + ".mgr-role{font-size:12.5px;color:var(--muted);margin:2px 0 10px}"
+    + ".mgr-contacts{display:flex;flex-direction:column;gap:6px}"
+    + ".mgr-c{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#3a3a44;text-decoration:none;font-weight:600}"
+    + ".mgr-c svg{width:16px;height:16px;flex:none;color:#4b57e0}"
+    + ".mgr-qr{flex:none;text-align:center;width:98px}"
+    + ".mgr-qr .qrbox{width:88px;height:88px;margin:0 auto 5px}"
+    + ".mgr-foot{margin-top:13px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);line-height:1.55}"
     // повторяющийся колонтитул при печати
     + ".runfoot{display:none}"
     + "@media print{.runfoot{display:flex;position:fixed;left:0;right:0;bottom:0;align-items:center;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.03em;color:var(--faint);padding-top:3px;border-top:1px solid var(--line)}"
@@ -1449,6 +1501,7 @@ function buildLogRecord(tariff, companyName){
     if(v>0) comp[inp.dataset.comp] = v;   // empCount, empSal, mgrCount, mgrSal, ropCount, ropSal
   });
   return {
+    type:      "report",
     ts:        new Date().toISOString(),
     version:   (typeof integratorCost==="function") ? "calc-serv" : "calc",
     iframe:    inIframe(),
@@ -1466,11 +1519,11 @@ function buildLogRecord(tariff, companyName){
   };
 }
 
-// Отправка «выстрелил-и-забыл»: не блокирует и не ломает отчёт при любой ошибке
-function logReport(tariff, companyName){
+// Отправка «выстрелил-и-забыл»: не блокирует и не ломает интерфейс при любой ошибке
+function sendLog(record){
   if(!LOG_ENDPOINT) return;
   try {
-    const body = JSON.stringify(buildLogRecord(tariff, companyName));
+    const body = JSON.stringify(record);
     if(navigator.sendBeacon){
       navigator.sendBeacon(LOG_ENDPOINT, new Blob([body], {type:"text/plain;charset=UTF-8"}));
     } else {
@@ -1478,6 +1531,23 @@ function logReport(tariff, companyName){
         headers:{"Content-Type":"text/plain;charset=UTF-8"}, body});
     }
   } catch(e){ /* аналитика не должна влиять на пользователя */ }
+}
+
+// Состав печатного отчёта → вкладка «Отчёты»
+function logReport(tariff, companyName){ sendLog(buildLogRecord(tariff, companyName)); }
+
+// Клик «Подробнее» по лендингу → вкладка «Лендинги»
+function logLanding(url, title){
+  sendLog({
+    type:     "landing",
+    ts:       new Date().toISOString(),
+    version:  (typeof integratorCost==="function") ? "calc-serv" : "calc",
+    iframe:   inIframe(),
+    host:     inIframe() ? (document.referrer || "") : location.href,
+    landing:  url,                          // имя лендинга (свой .html) или внешний URL
+    title:    title || "",                  // заголовок сценария
+    external: /^https?:\/\//i.test(url),    // внешний helpdesk (открылся в новой вкладке) или свой (слайдер)
+  });
 }
 
 function openReport(tariff, company){
@@ -1506,15 +1576,6 @@ modal.innerHTML = "<div class='modal'>"
   + "<button class='btn-primary' id='modal-ok'>Сформировать документ</button>"
   + "</div></div>";
 document.querySelector(".wrap").appendChild(modal);
-
-// Плашка о сохранении данных — только если журнал включён
-if(LOG_ENDPOINT){
-  const note = document.createElement("p");
-  note.className = "msub";
-  note.style.cssText = "margin-top:14px;font-size:12px;opacity:.65";
-  note.textContent = "Состав отчёта сохраняется для улучшения сервиса.";
-  modal.querySelector(".modal-actions").before(note);
-}
 
 modal.querySelectorAll("input[name=tariff]").forEach(r=>{
   r.addEventListener("change", ()=>{
@@ -1627,6 +1688,7 @@ document.addEventListener("click", e=>{
   if(m){
     e.preventDefault();
     const url = m.dataset.slide;
+    logLanding(url, m.dataset.title);   // фиксируем интерес к лендингу
     // внешние сайты (helpdesk) запрещают встраивание в iframe — открываем в новой вкладке;
     // свои лендинги показываем в слайдере
     if(/^https?:\/\//i.test(url)) window.open(url, "_blank", "noopener");
