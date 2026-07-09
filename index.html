@@ -1059,8 +1059,44 @@ function buildReportHtml(tariff, company){
   }
   const costs1 = payTariffY + tgtSubY + totalInt;   // стоимость перехода 1-го года
   const net1 = grandYear - costs1;
-  const ratio = costs1>0 ? grandYear/costs1 : 0;
-  const ratioTxt = ratio>=10 ? Math.round(ratio).toLocaleString("ru-RU") : ratio.toFixed(1).replace(".",",");
+
+  // русская плюрализация: (5, "день","дня","дней")
+  const plural = (n, one, few, many) => {
+    n = Math.abs(Math.round(n)) % 100; const n1 = n % 10;
+    if(n > 10 && n < 20) return many;
+    if(n1 > 1 && n1 < 5) return few;
+    if(n1 === 1) return one;
+    return many;
+  };
+  // окупаемость во времени — интуитивнее и правдоподобнее, чем «в N раз»
+  const paybackMonths = grand>0 ? costs1/grand : 0;
+  const fmtPayback = m => {
+    if(m<=0) return "";
+    const days = m*30.44;
+    if(days<1) return "менее дня";
+    if(days<60){ const d=Math.round(days); return d+" "+plural(d,"день","дня","дней"); }
+    const mm=Math.round(m); return mm+" "+plural(mm,"месяц","месяца","месяцев");
+  };
+  const paybackTxt = fmtPayback(paybackMonths);
+
+  // «твёрдые» и «мягкие» деньги: гарантированная экономия ФОТ vs потенциал роста
+  const hard = totalFot;
+  const soft = totalPot + totalRev;
+
+  // «в двух словах» — рутина в часах и штатных единицах (из гарантированной экономии ФОТ)
+  const salEl = document.querySelector('.comp-in[data-comp="empSal"]');
+  const empSalV = salEl ? parseNum(salEl.value) : 0;
+  const fte = empSalV>0 ? hard/(empSalV*1.4) : 0;
+  const hoursMonth = Math.round(fte*176);
+  let takeaway = "";
+  if(fte>=0.5 && hoursMonth>0){
+    const m = Math.round(fte);
+    takeaway = "<b>Что это значит:</b> BitrixGPT снимает с команды около <b>"+groupFmt(String(hoursMonth))+" "+plural(hoursMonth,"часа","часов","часов")
+      + " рутины в месяц</b> — это работа примерно <b>"+m+" "+plural(m,"сотрудника","сотрудников","сотрудников")
+      + "</b>. Освободившееся время команда тратит на клиентов и продажи.";
+  } else if(hard>0){
+    takeaway = "<b>Что это значит:</b> BitrixGPT берёт на себя рутинные операции, а команда занимается клиентами и продажами.";
+  }
 
   // разница с Профессиональным, если текущий тариф ниже, а рекомендация — не Профессиональный
   let proNote = "";
@@ -1120,6 +1156,7 @@ function buildReportHtml(tariff, company){
     if(v>=1e4) return Math.round(v/1e3)+" тыс ₽";
     return groupFmt(String(v))+" ₽";
   };
+  const approx = v => "≈ "+fmtCompact(v);   // «≈ 84,6 млн ₽» — оценка выглядит оценкой
   const lgRow = (col,name,valTxt,pctTxt) =>
     "<div class='lg-row'><span class='lg-dot' style='background:"+col+"'></span>"
     + "<span class='lg-name'>"+name+"</span><span class='lg-val'>"+valTxt+"</span>"
@@ -1152,20 +1189,27 @@ function buildReportHtml(tariff, company){
       + "</div></section>";
   }
 
-  // 2) «Из чего складывается эффект» — стопка-полоса по типам
-  const parts = [{name:"Экономия ФОТ", val:totalFot, col:"hsl(220,82%,55%)"}];
-  if(totalPot>0) parts.push({name:"Раскрытый потенциал базы", val:totalPot, col:"hsl(160,55%,42%)"});
-  if(totalRev>0) parts.push({name:"Прирост выручки", val:totalRev, col:"hsl(195,75%,48%)"});
+  // 2) «Из чего складывается эффект» — стопка-полоса: твёрдая экономия vs потенциал роста
+  const parts = [{name:"Гарантированная экономия ФОТ", val:totalFot, col:"hsl(220,82%,55%)", soft:false}];
+  if(totalPot>0) parts.push({name:"Потенциал роста базы", val:totalPot, col:"hsl(160,55%,42%)", soft:true});
+  if(totalRev>0) parts.push({name:"Прирост выручки", val:totalRev, col:"hsl(195,75%,48%)", soft:true});
   const compParts = parts.filter(p=>p.val>0);
+  const hasSoft = compParts.some(p=>p.soft);
   let compBar = "";
   if(compParts.length && grand>0){
+    const segBg = p => p.soft
+      ? "repeating-linear-gradient(45deg,"+p.col+","+p.col+" 7px,rgba(255,255,255,.42) 7px,rgba(255,255,255,.42) 14px)"
+      : p.col;
     const segs = compParts.map((p,i)=>{
       const pct = p.val/grand*100;
       const lbl = (compParts.length>1 && pct>=12) ? "<span>"+Math.round(pct)+"%</span>" : "";
-      return (i? "<span class='cbar-gap'></span>":"") + "<div class='cbar-seg' style='width:"+pct.toFixed(1)+"%;background:"+p.col+"'>"+lbl+"</div>";
+      return (i? "<span class='cbar-gap'></span>":"") + "<div class='cbar-seg' style='width:"+pct.toFixed(1)+"%;background:"+segBg(p)+"'>"+lbl+"</div>";
     }).join("");
-    const legend = compParts.map(p=>lgRow(p.col, p.name, fmtCompact(p.val*12)+" / год", Math.round(p.val/grand*100)+"%")).join("");
-    compBar = "<div class='cbar'>"+segs+"</div><div class='legend'>"+legend+"</div>";
+    const legend = compParts.map(p=>lgRow(p.col, p.name+(p.soft?" · оценка":""), fmtCompact(p.val*12)+" / год", Math.round(p.val/grand*100)+"%")).join("");
+    const note = hasSoft
+      ? "<div class='cnote'>Штриховкой — <b>потенциал роста</b>: оценка дополнительной выручки от работы с базой (повторные продажи), зависит от активности продаж. <b>Гарантированная экономия ФОТ</b> считается от текущих затрат рабочего времени.</div>"
+      : "";
+    compBar = "<div class='cbar'>"+segs+"</div><div class='legend'>"+legend+"</div>"+note;
   }
 
   // 3) «Эффект против затрат» — полоса-сравнение
@@ -1182,7 +1226,7 @@ function buildReportHtml(tariff, company){
       + "<span class='cmp-cost-val'>"+fmtMoney(costs1)+"</span><span class='cmp-note'>— это "+costPctTxt+" от эффекта</span></div></div>"
       + "<div class='cmp-cards'>"
       + "<div class='cmp-card"+(netPos?" pos":"")+"'><div class='cc-l'>Чистая выгода 1-го года</div><div class='cc-v'>"+fmtMoney(net1)+"</div></div>"
-      + (ratio>0 ? "<div class='cmp-card acc'><div class='cc-l'>Эффект больше затрат в</div><div class='cc-v'>"+ratioTxt+"×</div></div>" : "")
+      + (paybackTxt ? "<div class='cmp-card acc'><div class='cc-l'>Срок окупаемости</div><div class='cc-v'>"+paybackTxt+"</div></div>" : "")
       + "</div></div>";
   }
 
@@ -1220,6 +1264,18 @@ function buildReportHtml(tariff, company){
     + ".hero .hnet b{color:hsl(160,55%,34%);font-weight:800}"
     + ".hero .hv{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:hsl(160,55%,95%);border-radius:999px;padding:7px 15px;font-size:13px;font-weight:600;color:hsl(160,30%,28%)}"
     + ".hero .hv .vb{font-family:Unbounded,sans-serif;font-weight:800;font-size:15px;color:hsl(160,60%,34%)}"
+    // разделение «твёрдых» и «мягких» денег в hero
+    + ".hsplit{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:13px}"
+    + ".hs{font-size:12px;padding:5px 13px;border-radius:999px;white-space:nowrap}"
+    + ".hs b{font-family:Unbounded,sans-serif;font-weight:800;font-size:12.5px;margin-left:2px}"
+    + ".hs.hard{background:hsl(220,80%,96%);color:hsl(220,45%,42%)}.hs.hard b{color:hsl(220,82%,48%)}"
+    + ".hs.soft{background:#fff;border:1px dashed hsl(160,42%,62%);color:hsl(160,32%,38%)}.hs.soft b{color:hsl(160,55%,34%)}"
+    + ".hs-sep{color:var(--faint);font-weight:700;font-size:14px}"
+    // строка «в двух словах»
+    + ".takeaway{border:1px solid #e2e2ee;border-left:3px solid #4b64e0;border-radius:10px;background:#fafaff;padding:12px 16px;font-size:12.5px;line-height:1.55;color:var(--muted);margin-bottom:24px;break-inside:avoid}"
+    + ".takeaway b{color:var(--ink);font-weight:800}"
+    // примечание про потенциал роста
+    + ".cnote{font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:10px}.cnote b{color:var(--muted);font-weight:700}"
     // данные о компании
     + ".co-grid{display:flex;flex-wrap:wrap;gap:8px}"
     + ".co-chip{border:1px solid var(--line);border-radius:10px;padding:8px 13px;font-size:12.5px;background:var(--panel);color:var(--muted)}"
@@ -1286,12 +1342,18 @@ function buildReportHtml(tariff, company){
     + "<div class='meta'>Отчёт сформирован "+dateStr+" · тариф «"+esc(tariff.name)+"»</div></header>"
     // 1) ЭФФЕКТ
     + "<section><div class='hero'>"
-    + "<div class='hl'>Общий эффект BitrixGPT за год</div>"
-    + "<div class='hnum'>"+fmtMoney(grandYear)+"</div>"
-    + "<div class='hm'>"+fmtMoney(grand)+" / мес</div>"
-    + "<div class='hnet'>Чистая выгода 1-го года (за вычетом затрат): <b>"+fmtMoney(net1)+"</b></div>"
-    + (costs1>0 && net1>0 ? "<div class='hv'><svg viewBox='0 0 24 24' fill='none' stroke='hsl(160,60%,40%)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' style='width:17px;height:17px'><path d='M20 6 9 17l-5-5'/></svg><span>Эффект за год больше затрат 1-го года в <span class='vb'>"+ratioTxt+"×</span></span></div>" : "")
+    + "<div class='hl'>Совокупный эффект BitrixGPT за год</div>"
+    + "<div class='hnum'>"+approx(grandYear)+"</div>"
+    + "<div class='hm'>"+approx(grand)+" / мес</div>"
+    + ((hard>0 && soft>0) ? "<div class='hsplit'>"
+        + "<span class='hs hard'>гарантированная экономия ФОТ <b>"+approx(hard*12)+"</b></span>"
+        + "<span class='hs-sep'>+</span>"
+        + "<span class='hs soft'>потенциал роста <b>"+approx(soft*12)+"</b></span>"
+        + "</div>" : "")
+    + (paybackTxt && costs1>0 ? "<div class='hv'><svg viewBox='0 0 24 24' fill='none' stroke='hsl(160,60%,40%)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' style='width:17px;height:17px'><path d='M20 6 9 17l-5-5'/></svg><span>Срок окупаемости вложений — <span class='vb'>"+paybackTxt+"</span></span></div>" : "")
     + "</div></section>"
+    // строка «в двух словах» — для не-аналитика и пересылки
+    + (takeaway ? "<div class='takeaway'>"+takeaway+"</div>" : "")
     // 2) данные о компании
     + "<section><p class='sec-eyebrow'>Данные о компании</p>"+coChips+"</section>"
     // 3) доля групп в эффекте (donut, только при ≥2 группах)
