@@ -1127,6 +1127,8 @@ function buildReportHtml(tariff, company, isBox){
   const pot = totalPot + totalRev, potYear = pot*12;  // потенциал роста — отдельно, в окупаемость НЕ входит
   const onlyPot = econ<=0 && pot>0;                   // выбраны только повторные продажи — потенциал становится главным
   const dateStr = new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
+  // домен-источник: serv → partner.bitrixgpt.online, calc → bitrixgpt.online
+  const SITE = (typeof integratorCost === "function") ? "partner.bitrixgpt.online" : "bitrixgpt.online";
   const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const companyLine = company ? "<div class='co'>"+esc(company)+"</div>" : "";
   const special = (tariff.variant==="free" || tariff.variant==="none");
@@ -1495,6 +1497,7 @@ function buildReportHtml(tariff, company, isBox){
     + ".trow.total{background:var(--panel);font-weight:800;color:var(--ink)}.trow.total .tv{color:var(--orange)}"
     + ".rec{margin-top:11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:12px 15px;font-size:9pt;color:var(--muted);break-inside:avoid}"
     + ".ft{margin-top:16px;color:#555;font-size:8pt;border-top:1px solid var(--line);padding-top:11px;line-height:1.55}"
+    + ".ft-site{margin-top:8px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:8.5pt;letter-spacing:.03em;color:var(--blue)}"
     // CTA — дальнейшие шаги
     + ".cta-sec{break-inside:avoid}"
     + ".cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}"
@@ -1560,8 +1563,9 @@ function buildReportHtml(tariff, company, isBox){
     + ctaBlock
     // мелкий шрифт — в самом низу
     + "<div class='ft'>Расчёт носит оценочный характер. Налоговая модель упрощённая (оклад на руки × 1,4); стоимость часа = оклад × 1,4 ÷ 176. Цены тарифов Bitrix24 — со скидкой при оплате за год; подписка BitrixGPT — при оплате за год.</div>"
+    + "<div class='ft-site'>Рассчитано на "+SITE+"</div>"
     + "</div>"
-    + "<div class='runfoot'><span>BitrixGPT · Экономический эффект</span><span>"+dateStr+"</span></div>"
+    + "<div class='runfoot'><span>BitrixGPT · Экономический эффект</span><span>"+dateStr+" · "+SITE+"</span></div>"
     + "</body></html>";
 }
 
