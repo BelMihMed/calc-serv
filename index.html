@@ -45,13 +45,33 @@
   .comp-in.prefilled{color:#c19a4b;font-style:italic}
   @media(max-width:600px){.company-cols{grid-template-columns:1fr}}
 
+  /* блок «Ваши контакты» (только serv) */
+  .mgr-set{background:#eef2fe;border:1px solid #dbe3fa;border-radius:16px;padding:16px 20px;margin-bottom:18px}
+  .mgr-set-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .mgr-set-title{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:800;color:#3b57d6}
+  .mgr-set-title svg{width:19px;height:19px;color:#3b57d6}
+  .mgr-set-title span{font-weight:600;color:var(--muted)}
+  .mgr-set-toggle{background:none;border:0;color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .mgr-set-sub{font-size:13px;color:var(--muted);margin:6px 0 14px}
+  .mgr-set-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .mgr-fld{display:flex;flex-direction:column}
+  .mgr-fld label{font-size:12.5px;color:var(--muted);margin-bottom:5px}
+  .mgr-fld input{border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:14px;color:var(--ink);background:#fff;outline:0;transition:border-color .15s}
+  .mgr-fld input:focus{border-color:var(--accent)}
+  .mgr-set.collapsed .mgr-set-sub,.mgr-set.collapsed .mgr-set-grid{display:none}
+  @media(max-width:600px){.mgr-set-grid{grid-template-columns:1fr}}
+  .mgr-reminder{font-size:13px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:16px}
+  .mgr-reminder b{color:var(--ink)}
+  .mgr-edit{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;padding:0 2px}
+  .mgr-edit:hover{text-decoration:underline}
+
   /* группы — каждая со своим оттенком */
   .group-crm,.group-agents,.group-other,.group-vibe{
     border-radius:16px;padding:16px 16px 6px;margin-bottom:16px;border:1px solid var(--line)}
   .group-crm{background:#f6f2fe;border-color:#e6ddfb}
   .group-agents{background:#eef2fe;border-color:#dbe3fa}
   .group-other{background:#eef8f5;border-color:#d5ece5}
-  .group-vibe{background:#fff5ec;border-color:#f6ddc2}
+  .group-vibe{background:linear-gradient(135deg,#fff3e3,#ffe6cc);border:1.5px solid #eda558;box-shadow:0 10px 30px rgba(212,115,32,.16)}
   .group-label{display:flex;align-items:center;gap:9px;margin:2px 4px 14px;
     font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}
   .group-label svg{width:18px;height:18px}
@@ -76,6 +96,7 @@
   .navbar .chip[data-go="sec-crm"]{color:#6d43d6;background:#f6f2fe;border-color:#e6ddfb}
   .navbar .chip[data-go="sec-agents"]{color:#3b57d6;background:#eef2fe;border-color:#dbe3fa}
   .navbar .chip[data-go="sec-other"]{color:#12866f;background:#eef8f5;border-color:#d5ece5}
+  .navbar .chip[data-go="sec-vibe"]{color:#c2651f;background:#ffe6cc;border-color:#eda558}
   .navbar .chip.go-summary{color:#fff;background:var(--grad-cta);border:0}
   .navbar .chip.go-summary:hover{filter:brightness(1.06)}
   .navbar .mini{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);white-space:nowrap}
@@ -198,7 +219,11 @@
   .modal-field input{width:100%;border:1.5px solid var(--line);border-radius:10px;
     padding:10px 12px;font:inherit;font-size:15px;color:var(--ink);outline:0;transition:border-color .15s}
   .modal-field input:focus{border-color:var(--accent)}
-  .tariff-list{display:flex;flex-direction:column;gap:8px;max-height:58vh;overflow:auto}
+  .deploy-toggle{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;margin:0 0 14px}
+  .dt-opt{flex:1;border:0;border-radius:9px;background:transparent;padding:9px 12px;font:inherit;font-family:Manrope,sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+  .dt-opt.sel{background:var(--grad-cta);color:#fff;box-shadow:0 2px 8px rgba(40,40,90,.18)}
+  .dt-opt:not(.sel):hover{color:var(--ink)}
+  .tariff-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
   .tariff-opt{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);
     border-radius:11px;padding:11px 14px;cursor:pointer;transition:.15s}
   .tariff-opt:hover{border-color:#cdcdd6}
@@ -222,6 +247,9 @@
     padding:12px 18px;background:linear-gradient(135deg,hsl(258,52%,20%),hsl(226,55%,23%),hsl(190,52%,21%));
     color:#fff;box-shadow:0 8px 30px rgba(10,8,30,.4)}
   .report-bar-l{display:flex;align-items:center;gap:11px;min-width:0}
+  .rb-x{flex:none;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;font-size:21px;line-height:1;cursor:pointer;padding:0;transition:.15s}
+  .rb-x:hover{background:rgba(255,255,255,.16)}
   .report-dot{width:9px;height:9px;border-radius:50%;flex:none;
     background:linear-gradient(90deg,#c7b8ff,#86ecd6);box-shadow:0 0 0 4px rgba(134,236,214,.14)}
   .report-title{font-family:Unbounded,Manrope,sans-serif;font-weight:700;font-size:15px;white-space:nowrap}
@@ -286,6 +314,7 @@
       <button class="chip" data-go="sec-crm">Сценарии в CRM</button>
       <button class="chip" data-go="sec-agents">ИИ-агенты</button>
       <button class="chip" data-go="sec-other">Общие</button>
+      <button class="chip" data-go="sec-vibe">VibeCode</button>
       <button class="chip go-summary" data-go="sec-summary">Итог ↓</button>
     </div>
     <div class="mini">
@@ -574,6 +603,7 @@ const scenarios = [
   },
   {
     id:7,
+    vibe:true,
     title:"VibeCode и BitrixGPT",
     sub:"Сотрудники упрощают и автоматизируют свою работу. Часть работает в чате с нейросетью, часть создаёт приложения и повышает личную эффективность и скорость бизнес-процессов компании.",
     link:"https://helpdesk.bitrix24.ru/open/28505406/",
@@ -667,6 +697,15 @@ otherGroup.innerHTML = '<div class="group-label">'
   + '<span>Общие сценарии</span></div>';
 root.appendChild(otherGroup);
 
+// отдельная заметная плашка для блока VibeCode
+const vibeGroup = document.createElement("div");
+vibeGroup.className = "group-vibe";
+vibeGroup.id = "sec-vibe";
+vibeGroup.innerHTML = '<div class="group-label">'
+  + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
+  + '<span>VibeCode и BitrixGPT</span></div>';
+root.appendChild(vibeGroup);
+
 scenarios.forEach((sc, idx)=>{
   const num = idx + 1;
   state[sc.id] = {selected:false, values:{}, segments:[]};
@@ -718,7 +757,7 @@ scenarios.forEach((sc, idx)=>{
       ${sc.qualitative?`<div class="note">${sc.qualitative}</div>`:''}
     </div>`;
 
-  (sc.crm ? crmGroup : sc.agents ? agentsGroup : otherGroup).appendChild(card);
+  (sc.crm ? crmGroup : sc.agents ? agentsGroup : sc.vibe ? vibeGroup : otherGroup).appendChild(card);
 
   // toggle (клик по ссылке "Подробнее" не переключает сценарий)
   const chk = card.querySelector(".chk");
@@ -978,6 +1017,18 @@ const TARIFFS = [
   {id:"none",       name:"Ещё нет Битрикс24",  variant:"none",  price:""},
 ];
 
+// Коробочная версия («1С-Битрикс24», self-hosted). subYear — годовая подписка BitrixGPT+Маркетплейс
+// (полная цена, без акции −50%). В затраты идёт ТОЛЬКО подписка; стоимость лицензии не учитывается.
+const BOX_TARIFFS = [
+  {id:"box_crm",     name:"CRM",                    users:12,   subYear:19500,  price:"19 500 ₽/год"},
+  {id:"box_shop",    name:"Интернет-магазин + CRM", users:12,   subYear:40000,  price:"40 000 ₽/год"},
+  {id:"box_cp50",    name:"Корп. портал (50)",      users:50,   subYear:60000,  price:"60 000 ₽/год"},
+  {id:"box_cp100",   name:"Корп. портал (100)",     users:100,  subYear:80000,  price:"80 000 ₽/год"},
+  {id:"box_cp250",   name:"Корп. портал (250)",     users:250,  subYear:120000, price:"120 000 ₽/год"},
+  {id:"box_cp500",   name:"Корп. портал (500)",     users:500,  subYear:210000, price:"210 000 ₽/год"},
+  {id:"box_ent1000", name:"Энтерпрайз (1000)",      users:1000, subYear:450000, price:"450 000 ₽/год"},
+];
+
 function fieldDisplay(f, val){
   if(f.suf==="доля") return (Math.round(val*1000)/10).toString().replace(".",",") + " %";
   return groupFmt(String(val)) + " " + f.suf;
@@ -1017,7 +1068,22 @@ function collectCompany(){
   return out;
 }
 
-function buildReportHtml(tariff, company){
+/* ---------- Данные менеджера (serv): дефолт + сохранение в localStorage ---------- */
+const MANAGER_DEFAULT = {
+  name:     "Имя Фамилия",
+  role:     "Менеджер по внедрению BitrixGPT",
+  company:  "Ваша компания-интегратор",
+  phone:    "+7 (900) 000-00-00",
+  email:    "manager@example.ru",
+  telegram: "@your_telegram",
+  qrLink:   "https://t.me/your_telegram"
+};
+const MGR_LS_KEY = "bitrixgpt_manager_v1";
+function mgrLoad(){ try{ return JSON.parse(localStorage.getItem(MGR_LS_KEY)) || {}; }catch(e){ return {}; } }
+function mgrSave(o){ try{ localStorage.setItem(MGR_LS_KEY, JSON.stringify(o)); }catch(e){} }
+function getManager(){ return Object.assign({}, MANAGER_DEFAULT, mgrLoad()); }
+
+function buildReportHtml(tariff, company, isBox){
   const {items, totalFot, totalRev, totalPot, totalInt, groupEcon} = collectResults();
   const comp = collectCompany();
   const econ = totalFot, econYear = econ*12;          // гарантированная экономия ФОТ — главное число отчёта
@@ -1061,22 +1127,31 @@ function buildReportHtml(tariff, company){
   const tgtTariffY = TAR_M[targetKey]*12;
   const tgtSubY = SUB_Y[targetKey];
 
-  // доплата за тариф
-  let payTariffY, tariffLabel;
-  if(isEnt){                                       // Энтерпрайз — тариф предполагаем уже подключённым, в затраты только подписка
+  // доплата за тариф + итоговая стоимость 1-го года
+  let payTariffY, tariffLabel, costs1, boxName = "", boxSubY = 0;
+  if(isBox){                                        // Коробка: в затраты только годовая подписка редакции; лицензия НЕ учитывается
+    boxName = tariff.name;
+    boxSubY = tariff.subYear || 0;
+    payTariffY = 0;
+    tariffLabel = "Коробочная редакция «"+boxName+"»";
+    costs1 = boxSubY + totalInt;
+  } else if(isEnt){                                 // Энтерпрайз — тариф предполагаем уже подключённым, в затраты только подписка
     payTariffY = 0;
     tariffLabel = "Тариф «"+tgtName+"» — предполагается уже подключён";
-  } else if(special || curIdx===0){                // бесплатный / нет Битрикс24 — полная стоимость
+    costs1 = payTariffY + tgtSubY + totalInt;
+  } else if(special || curIdx===0){                 // бесплатный / нет Битрикс24 — полная стоимость
     payTariffY = tgtTariffY;
     tariffLabel = "Тариф «"+tgtName+"» (полная стоимость)";
-  } else if(curIdx >= tgtIdx){                      // текущий тариф уже подходит
+    costs1 = payTariffY + tgtSubY + totalInt;
+  } else if(curIdx >= tgtIdx){                       // текущий тариф уже подходит
     payTariffY = 0;
     tariffLabel = "Тариф «"+TAR_NAME[tariff.id]+"» — уже подключён";
-  } else {                                          // апгрейд с текущего до рекомендованного
+    costs1 = payTariffY + tgtSubY + totalInt;
+  } else {                                           // апгрейд с текущего до рекомендованного
     payTariffY = tgtTariffY - TAR_M[tariff.id]*12;
     tariffLabel = "Доплата за тариф: «"+TAR_NAME[tariff.id]+"» → «"+tgtName+"»";
+    costs1 = payTariffY + tgtSubY + totalInt;
   }
-  const costs1 = payTariffY + tgtSubY + totalInt;   // стоимость перехода 1-го года
   const netEcon = econYear - costs1;                // чистая экономия 1-го года (без учёта потенциала)
 
   // русская плюрализация: (5, "месяц","месяца","месяцев")
@@ -1117,13 +1192,15 @@ function buildReportHtml(tariff, company){
 
   // разница с Профессиональным, если текущий тариф ниже, а рекомендация — не Профессиональный
   let proNote = "";
-  if(curIdx < TAR_IDX.pro && tgtIdx < TAR_IDX.pro){
+  if(!isBox && curIdx < TAR_IDX.pro && tgtIdx < TAR_IDX.pro){
     const proDiff = TAR_M.pro*12 - (curIdx>0 ? TAR_M[tariff.id]*12 : 0);
     proNote = "Переход сразу на «Профессиональный»: доплата за тариф "+fmtMoney(proDiff)+"/год + подписка "+fmtMoney(SUB_Y.pro)+"/год.";
   }
   // рекомендация текстом
   let recommend = "";
-  if(isEnt)
+  if(isBox)
+    recommend = "Коробочная версия «"+boxName+"»: в затраты включена только годовая подписка BitrixGPT ("+fmtMoney(boxSubY)+"/год). Стоимость самой лицензии Битрикс24 в расчёт не входит.";
+  else if(isEnt)
     recommend = "Для "+groupFmt(String(employees))+" пользователей нужен тариф «"+tgtName+"». Предполагаем, что он у вас уже подключён, поэтому в затраты входит только подписка BitrixGPT.";
   else if(special) recommend = tariff.variant==="free"
     ? "На бесплатном тарифе ИИ-агенты BitrixGPT недоступны — нужен платный тариф «Профессиональный». В расчёте — его полная стоимость плюс подписка."
@@ -1157,19 +1234,27 @@ function buildReportHtml(tariff, company){
     : "<div class='co-empty'>Данные о компании не заполнены.</div>";
 
   // строки затрат
-  let costRows = "<div class='trow'><span>Рекомендуемый тариф Bitrix24 — «"+tgtName+"»</span><span class='tv'>"+fmtMoney(TAR_M[targetKey])+"/мес · "+fmtMoney(tgtTariffY)+"/год</span></div>";
-  if(isEnt){                                       // Энтерпрайз — тариф уже есть, в затраты не входит
-    costRows += "<div class='trow'><span>Тариф «"+tgtName+"» — предполагается уже подключён</span><span class='tv'>0 ₽</span></div>";
-  } else if(special || curIdx===0){
-    // полная стоимость тарифа уже указана в строке выше — отдельной строкой не дублируем
-  } else if(payTariffY>0){
-    costRows += "<div class='trow'><span>Доплата за тариф с «"+TAR_NAME[tariff.id]+"» до «"+tgtName+"»</span><span class='tv'>"+fmtMoney(payTariffY)+"/год</span></div>";
+  let costRows;
+  if(isBox){                                       // Коробка: лицензия не в затратах, считаем только подписку
+    costRows = "<div class='trow'><span>Коробочная редакция «"+boxName+"» (до "+groupFmt(String(tariff.users))+" польз.) — лицензия</span><span class='tv'>не учитывается</span></div>";
+    costRows += "<div class='trow'><span>Подписка BitrixGPT + Маркетплейс (коробка)</span><span class='tv'>"+fmtMoney(boxSubY/12)+"/мес · "+fmtMoney(boxSubY)+"/год</span></div>";
+    if(totalInt>0) costRows += "<div class='trow'><span>Настройка от интегратора (разово)</span><span class='tv'>"+fmtMoney(totalInt)+"</span></div>";
+    costRows += "<div class='trow total'><span>Итого стоимость 1-го года</span><span class='tv'>"+fmtMoney(costs1)+"</span></div>";
   } else {
-    costRows += "<div class='trow'><span>Тариф «"+TAR_NAME[tariff.id]+"» — уже подключён</span><span class='tv'>0 ₽</span></div>";
+    costRows = "<div class='trow'><span>Рекомендуемый тариф Bitrix24 — «"+tgtName+"»</span><span class='tv'>"+fmtMoney(TAR_M[targetKey])+"/мес · "+fmtMoney(tgtTariffY)+"/год</span></div>";
+    if(isEnt){                                     // Энтерпрайз — тариф уже есть, в затраты не входит
+      costRows += "<div class='trow'><span>Тариф «"+tgtName+"» — предполагается уже подключён</span><span class='tv'>0 ₽</span></div>";
+    } else if(special || curIdx===0){
+      // полная стоимость тарифа уже указана в строке выше — отдельной строкой не дублируем
+    } else if(payTariffY>0){
+      costRows += "<div class='trow'><span>Доплата за тариф с «"+TAR_NAME[tariff.id]+"» до «"+tgtName+"»</span><span class='tv'>"+fmtMoney(payTariffY)+"/год</span></div>";
+    } else {
+      costRows += "<div class='trow'><span>Тариф «"+TAR_NAME[tariff.id]+"» — уже подключён</span><span class='tv'>0 ₽</span></div>";
+    }
+    costRows += "<div class='trow'><span>Подписка BitrixGPT ("+tgtName+")</span><span class='tv'>"+fmtMoney(tgtSubY/12)+"/мес · "+fmtMoney(tgtSubY)+"/год</span></div>";
+    if(totalInt>0) costRows += "<div class='trow'><span>Настройка от интегратора (разово)</span><span class='tv'>"+fmtMoney(totalInt)+"</span></div>";
+    costRows += "<div class='trow total'><span>Итого стоимость перехода (1-й год)</span><span class='tv'>"+fmtMoney(costs1)+"</span></div>";
   }
-  costRows += "<div class='trow'><span>Подписка BitrixGPT ("+tgtName+")</span><span class='tv'>"+fmtMoney(tgtSubY/12)+"/мес · "+fmtMoney(tgtSubY)+"/год</span></div>";
-  if(totalInt>0) costRows += "<div class='trow'><span>Настройка от интегратора (разово)</span><span class='tv'>"+fmtMoney(totalInt)+"</span></div>";
-  costRows += "<div class='trow total'><span>Итого стоимость перехода (1-й год)</span><span class='tv'>"+fmtMoney(costs1)+"</span></div>";
 
 
   // 1) Доля групп в экономии — горизонтальная стековая полоса (только при ≥2 непустых группах)
@@ -1232,19 +1317,8 @@ function buildReportHtml(tariff, company){
   //    calc → самоподключение + заявка;  serv → карточка менеджера (apply_integrator.py меняет флаг).
   const CTA_VARIANT = "serv";   /* карточка менеджера — данные в MANAGER ниже */
 
-  // ================================================================
-  //  ДАННЫЕ МЕНЕДЖЕРА (для serv-версии) — ВПИШИТЕ СВОИ.
-  //  Показываются в CTA-блоке отчёта; qrLink кодируется в QR-код.
-  // ================================================================
-  const MANAGER = {
-    name:     "Имя Фамилия",                        // ваше имя
-    role:     "Менеджер по внедрению BitrixGPT",     // должность
-    company:  "Ваша компания-интегратор",            // название компании (можно "")
-    phone:    "+7 (900) 000-00-00",                  // телефон (можно "")
-    email:    "manager@example.ru",                  // e-mail (можно "")
-    telegram: "@your_telegram",                      // Telegram (можно "")
-    qrLink:   "https://t.me/your_telegram"           // ссылка для QR: t.me / wa.me / сайт
-  };
+  // Данные менеджера для serv-версии: блок «Ваши контакты» (localStorage) → дефолт MANAGER_DEFAULT.
+  const MANAGER = getManager();
 
   const ctaBlock = (function(){
     if(CTA_VARIANT === "serv"){
@@ -1422,7 +1496,7 @@ function buildReportHtml(tariff, company){
     + "<header>"+companyLine
     + "<div class='brandline'><span class='logo'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v18M3 12h18'/></svg></span><span class='bt'>Bitrix24 · BitrixGPT · Экономический эффект</span></div>"
     + "<h1 class='wordmark'>Экономический эффект BitrixGPT</h1>"
-    + "<div class='meta'>Отчёт сформирован "+dateStr+" · тариф «"+esc(tariff.name)+"»</div></header>"
+    + "<div class='meta'>Отчёт сформирован "+dateStr+" · "+(isBox?"коробка · ":"")+"тариф «"+esc(tariff.name)+"»</div></header>"
     // 1) ГЛАВНОЕ ЧИСЛО — гарантированная экономия (или потенциал, если выбраны только повторные продажи)
     + "<section><div class='hero'>"
     + "<div class='hl'>"+(onlyPot ? "Потенциал роста за год · оценка" : "Экономия ФОТ за год")+"</div>"
@@ -1459,7 +1533,7 @@ const reportOverlay = document.createElement("div");
 reportOverlay.className = "report-overlay"; reportOverlay.hidden = true;
 reportOverlay.innerHTML =
     "<div class='report-bar'>"
-  + "<div class='report-bar-l'><span class='report-dot'></span><span class='report-title'>Предпросмотр отчёта</span>"
+  + "<div class='report-bar-l'><button type='button' class='rb-x' id='report-x' aria-label='Закрыть'>×</button><span class='report-dot'></span><span class='report-title'>Предпросмотр отчёта</span>"
   + "<span class='report-hint'>Проверьте документ и сохраните в PDF или отправьте на печать</span></div>"
   + "<div class='report-bar-r'>"
   + "<button type='button' class='rb-close' id='report-close'>Закрыть</button>"
@@ -1477,6 +1551,7 @@ function closeReport(){
   document.body.style.overflow = "";
 }
 document.getElementById("report-close").addEventListener("click", closeReport);
+document.getElementById("report-x").addEventListener("click", closeReport);
 document.getElementById("report-print").addEventListener("click", ()=>{
   try{ reportFrame.contentWindow.focus(); reportFrame.contentWindow.print(); }
   catch(e){ window.print(); }
@@ -1547,8 +1622,8 @@ function logLanding(url, title){
   });
 }
 
-function openReport(tariff, company){
-  const html = buildReportHtml(tariff, company);
+function openReport(tariff, company, isBox){
+  const html = buildReportHtml(tariff, company, isBox);
   const doc = reportFrame.contentDocument || reportFrame.contentWindow.document;
   doc.open(); doc.write(html); doc.close();
   reportOverlay.hidden = false;
@@ -1561,34 +1636,116 @@ function openReport(tariff, company){
 const modal = document.createElement("div");
 modal.className = "modal-overlay"; modal.hidden = true;
 modal.innerHTML = "<div class='modal'>"
-  + "<h3>Выберите ваш текущий тариф Битрикс24</h3>"
-  + "<p class='msub'>Нужно, чтобы сравнить эффект со стоимостью подписки BitrixGPT.</p>"
-  + "<div class='tariff-list'>"
-  + TARIFFS.map((t,i)=>"<label class='tariff-opt"+(i===0?" sel":"")+"'>"
-      + "<input type='radio' name='tariff' value='"+t.id+"'"+(i===0?" checked":"")+">"
-      + "<span class='nm'>"+t.name+"</span><span class='pr'>"+(t.price||"")+"</span></label>").join("")
+  + "<h3>Ваш Битрикс24</h3>"
+  + "<p class='msub'>Выберите формат и тариф — нужно, чтобы сравнить эффект со стоимостью подписки BitrixGPT.</p>"
+  + "<div class='deploy-toggle'>"
+  +   "<button type='button' class='dt-opt sel' data-mode='cloud'>Облако</button>"
+  +   "<button type='button' class='dt-opt' data-mode='box'>Коробка</button>"
   + "</div>"
+  + "<div class='tariff-list' id='tariff-list'></div>"
   + "<div class='modal-actions'>"
   + "<button class='btn-secondary' id='modal-cancel'>Отмена</button>"
   + "<button class='btn-primary' id='modal-ok'>Сформировать документ</button>"
   + "</div></div>";
 document.querySelector(".wrap").appendChild(modal);
 
-modal.querySelectorAll("input[name=tariff]").forEach(r=>{
-  r.addEventListener("change", ()=>{
-    modal.querySelectorAll(".tariff-opt").forEach(o=>o.classList.remove("sel"));
-    r.closest(".tariff-opt").classList.add("sel");
+let deployMode = "cloud";
+const tariffListEl = modal.querySelector("#tariff-list");
+function renderTariffList(){
+  const list = deployMode==="box" ? BOX_TARIFFS : TARIFFS;
+  tariffListEl.innerHTML = list.map((t,i)=>"<label class='tariff-opt"+(i===0?" sel":"")+"'>"
+    + "<input type='radio' name='tariff' value='"+t.id+"'"+(i===0?" checked":"")+">"
+    + "<span class='nm'>"+t.name+"</span><span class='pr'>"+(t.price||"")+"</span></label>").join("");
+}
+renderTariffList();
+
+// подсветка выбранной радио-опции (делегирование — переживает перерисовку списка)
+tariffListEl.addEventListener("change", e=>{
+  if(e.target.name!=="tariff") return;
+  tariffListEl.querySelectorAll(".tariff-opt").forEach(o=>o.classList.remove("sel"));
+  e.target.closest(".tariff-opt").classList.add("sel");
+});
+// переключатель Облако / Коробка — меняет набор тарифов
+modal.querySelectorAll(".dt-opt").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    if(deployMode===b.dataset.mode) return;
+    deployMode = b.dataset.mode;
+    modal.querySelectorAll(".dt-opt").forEach(o=>o.classList.toggle("sel", o===b));
+    renderTariffList();
   });
 });
+
 document.getElementById("dl-btn").addEventListener("click", ()=>{ modal.hidden = false; });
 document.getElementById("modal-cancel").addEventListener("click", ()=>{ modal.hidden = true; });
 modal.addEventListener("click", e=>{ if(e.target===modal) modal.hidden = true; });
 document.getElementById("modal-ok").addEventListener("click", ()=>{
-  const id = modal.querySelector("input[name=tariff]:checked").value;
+  const checked = modal.querySelector("input[name=tariff]:checked");
+  if(!checked) return;
+  const isBox = deployMode==="box";
+  const list = isBox ? BOX_TARIFFS : TARIFFS;
   const company = document.getElementById("company-name").value.trim();
   modal.hidden = true;
-  openReport(TARIFFS.find(t=>t.id===id), company);
+  openReport(list.find(t=>t.id===checked.value), company, isBox);
 });
+
+/* ---------- Контакты менеджера (только serv): блок «Ваши контакты» + напоминание в модалке ---------- */
+if(typeof integratorCost === "function"){
+  const MGR_FIELDS = [
+    ["name","Имя и фамилия"], ["role","Должность"], ["company","Компания"],
+    ["phone","Телефон"], ["email","E-mail"], ["telegram","Telegram"],
+    ["qrLink","Ссылка для QR (t.me / wa.me / сайт)"]
+  ];
+  const eff = getManager();
+
+  // блок настроек после «Данные о компании»
+  const box = document.createElement("div");
+  box.className = "mgr-set"; box.id = "mgr-set";
+  box.innerHTML = "<div class='mgr-set-head'>"
+    + "<div class='mgr-set-title'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M20 21a8 8 0 1 0-16 0'/><circle cx='12' cy='7' r='4'/></svg>Ваши контакты <span>(в отчёт)</span></div>"
+    + "<button type='button' class='mgr-set-toggle' id='mgr-toggle'>Свернуть</button></div>"
+    + "<div class='mgr-set-sub'>Заполните один раз — данные попадут в блок «Ваш менеджер» в отчёте и в QR-код. Сохраняются в этом браузере.</div>"
+    + "<div class='mgr-set-grid' id='mgr-grid'></div>";
+  const companyEl = document.getElementById("company");
+  companyEl.parentNode.insertBefore(box, companyEl.nextSibling);
+
+  // напоминание в модалке (создаём заранее, чтобы на него могли ссылаться обработчики полей)
+  const rem = document.createElement("div");
+  rem.className = "mgr-reminder";
+  rem.innerHTML = "Контакты в отчёте: <b class='mgr-rem-name'></b> <button type='button' class='mgr-edit'>изменить</button>";
+  const msub = modal.querySelector(".msub");
+  if(msub && msub.parentNode) msub.parentNode.insertBefore(rem, msub.nextSibling);
+  const updateReminder = ()=>{ rem.querySelector(".mgr-rem-name").textContent = getManager().name || "не заполнены"; };
+
+  // поля (предзаполнены эффективными значениями; сохранение по вводу)
+  const grid = box.querySelector("#mgr-grid");
+  MGR_FIELDS.forEach(f=>{
+    const fld = document.createElement("div"); fld.className = "mgr-fld";
+    const lab = document.createElement("label"); lab.textContent = f[1];
+    const inp = document.createElement("input"); inp.type = "text"; inp.dataset.mgr = f[0];
+    inp.value = eff[f[0]] != null ? String(eff[f[0]]) : "";
+    inp.placeholder = MANAGER_DEFAULT[f[0]] || "";
+    inp.addEventListener("input", ()=>{ const o = mgrLoad(); o[f[0]] = inp.value; mgrSave(o); updateReminder(); });
+    fld.appendChild(lab); fld.appendChild(inp); grid.appendChild(fld);
+  });
+
+  // сворачивание блока
+  document.getElementById("mgr-toggle").addEventListener("click", ()=>{
+    const collapsed = box.classList.toggle("collapsed");
+    document.getElementById("mgr-toggle").textContent = collapsed ? "Развернуть" : "Свернуть";
+  });
+
+  // «изменить» из модалки → закрыть модалку и открыть блок
+  rem.querySelector(".mgr-edit").addEventListener("click", ()=>{
+    modal.hidden = true;
+    box.classList.remove("collapsed");
+    document.getElementById("mgr-toggle").textContent = "Свернуть";
+    box.scrollIntoView({behavior:"smooth", block:"center"});
+    const first = box.querySelector("input[data-mgr]"); if(first) first.focus();
+  });
+
+  updateReminder();
+  document.getElementById("dl-btn").addEventListener("click", updateReminder);
+}
 
 /* ---------- Пояснения «как считается» (всплывающее окно) ---------- */
 const INFO = {
