@@ -170,6 +170,12 @@
   .sum-grid .fullrow.net .v{color:#9ff5c4;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .summary .fullrow .info-btn{color:rgba(255,255,255,.85)}
   .summary .fullrow .info-btn:hover{color:#fff;background:rgba(255,255,255,.15)}
+  .res-row.int .lbl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .int-note{font-size:12.5px;font-weight:600;color:#a9701f}
+  .res-row.int .val.int-val{display:inline-flex;align-items:center;gap:5px}
+  .int-in{width:104px;text-align:right;border:1.5px solid var(--line);border-radius:8px;padding:4px 9px;font:inherit;font-size:14px;font-variant-numeric:tabular-nums;color:#b34a2f;background:#fff;outline:0}
+  .int-in:focus{border-color:var(--accent)}
+  .int-cur{color:var(--muted);font-size:13px}
   .breakdown{font-size:12.5px;color:var(--muted);margin:2px 0 8px;padding-left:2px}
   .breakdown div{padding:2px 0}
   .note{font-size:13px;color:#7a5a1f;background:#fff8ee;border:1px solid #f2e2c4;border-radius:10px;padding:10px 13px;margin-top:12px}
@@ -930,7 +936,7 @@ function recompute(){
       rows += `<div class="res-row total"><span class="lbl">Итого по сценарию, месяц</span><span class="val">${fmtMoney(totMonth)}</span></div>`;
       rows += `<div class="res-row total"><span class="lbl">Итого по сценарию, год</span><span class="val">${fmtMoney(totMonth*12)}</span></div>`;
     }
-    rows += `<div class="res-row int"><span class="lbl">Настройка от интегратора (разово) <button class="info-btn" data-info="int-${sc.id}" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="val cost">${fmtMoney(intCost)}</span></div>`;
+    rows += `<div class="res-row int"><span class="lbl">Настройка от интегратора (разово) <span class="int-note">· заполняется интегратором</span> <button class="info-btn" data-info="int-${sc.id}" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="val cost int-val"><input type="text" inputmode="decimal" class="int-in" data-int="${sc.id}" value="${groupFmt(String(integratorCost(sc)))}"><span class="int-cur">₽</span></span></div>`;
     resEl.innerHTML = rows;
   });
 
@@ -952,14 +958,37 @@ function row(lbl,val,cls){
   return `<div class="res-row"><span class="lbl">${lbl}</span><span class="val ${cls||''}">${val}</span></div>`;
 }
 
-/* ---------- Настройка от интегратора ---------- */
-const STAFF_KEY = {1:"mgr",4:"rop",3:"emp",2:"spec",9:"mgr",10:"emp",11:"emp",7:"emp",6:"part"};
+/* ---------- Настройка от интегратора: дефолты по сценариям, редактируется интегратором ---------- */
+const INTEGRATOR_DEFAULT = {1:20000, 4:50000, 5:50000, 9:50000, 2:100000, 10:50000, 11:20000, 12:50000, 3:50000, 6:10000, 7:50000};
+const INT_LS_KEY = "bitrixgpt_integrator_v1";
+function intLoad(){ try{ return JSON.parse(localStorage.getItem(INT_LS_KEY)) || {}; }catch(e){ return {}; } }
+function intSaveField(id, val){ const o = intLoad(); o[id] = val; try{ localStorage.setItem(INT_LS_KEY, JSON.stringify(o)); }catch(e){} }
 function integratorCost(sc){
-  const key = STAFF_KEY[sc.id];
-  const staff = key ? (state[sc.id].values[key] || 0) : 1;
-  const units = Math.max(1, Math.ceil(staff / 5));
-  return units * 20000;
+  const raw = intLoad()[sc.id];
+  if(raw === undefined) return INTEGRATOR_DEFAULT[sc.id] || 0;   // не задано — значение по умолчанию
+  return parseNum(String(raw));                                  // задано интегратором (в т.ч. 0)
 }
+// пересчёт только итога, без перерисовки блоков — чтобы не терять фокус в поле ввода
+function refreshIntegratorSummary(){
+  let f=0, rv=0, p=0, ti=0, any=false, q=false;
+  scenarios.forEach(sc=>{
+    const st = state[sc.id]; if(!st.selected) return;
+    any=true; if(sc.qualitative) q=true;
+    const r = computeScenario(sc, st);
+    f += r.fot;
+    if(sc.revLabel==="Потенциал базы") p += r.rev; else if(revShown(sc)) rv += r.rev;
+    ti += integratorCost(sc);
+  });
+  renderSummary(f, rv, p, any, q, ti);
+}
+// редактирование суммы услуг (делегирование — переживает перерисовку блоков)
+document.addEventListener("input", function(e){
+  const el = e.target;
+  if(!el || !el.classList || !el.classList.contains("int-in")) return;
+  const n = onNumInput(el);
+  intSaveField(el.dataset.int, n);
+  refreshIntegratorSummary();
+});
 
 /* ---------- Итоговый блок ---------- */
 function renderSummary(fot, rev, pot, any, qual, integ){
@@ -1776,7 +1805,7 @@ const INTEGRATOR_INFO = {
   6:"Интегратор настроит транскрибацию встреч и автоматическое резюме под ваши форматы совещаний. Поможет задать, кому отправлять итоги и какие задачи ставить по результатам. Объём зависит от числа участников встреч.",
   7:"Интегратор проведёт онбординг сотрудников по работе с BitrixGPT и VibeCode: типовые сценарии в чате с нейросетью, генерация текстов, автоматизация рутины и процессов отдела. Настроит доступы и сопроводит первые сценарии до результата. Стоимость зависит от числа сотрудников.",
 };
-const INTEGRATOR_SUMMARY = "Это разовая стоимость услуг интегратора по всем выбранным сценариям: подключение, настройка под ваши процессы и обучение сотрудников. Сумма ориентировочная — пока считается от числа сотрудников в блоке (каждые 5 сотрудников — 20 000 ₽). Эти затраты вычитаются из выгоды первого года перед сравнением со стоимостью подписки.";
+const INTEGRATOR_SUMMARY = "Это разовая стоимость услуг интегратора по всем выбранным сценариям: подключение, настройка под ваши процессы и обучение сотрудников. Значения задаёт интегратор в каждом сценарии (есть суммы по умолчанию, их можно изменить прямо в поле). Эти затраты вычитаются из выгоды первого года перед сравнением со стоимостью подписки.";
 
 const infoModal = document.createElement("div");
 infoModal.className = "modal-overlay"; infoModal.hidden = true;
