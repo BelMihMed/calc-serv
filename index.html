@@ -1131,20 +1131,29 @@ function buildReportHtml(tariff, company){
   else if(agentsUsed && curIdx < TAR_IDX.pro)
     recommend = "Вы используете ИИ-агентов — для них нужен тариф не ниже «Профессионального». Показана доплата к вашему тарифу.";
 
+  // компактный формат сумм: 84 605 700 → «84,6 млн ₽»
+  const fmtCompact = v => {
+    v = Math.round(v);
+    if(v>=1e9) return (v/1e9).toFixed(1).replace(".",",")+" млрд ₽";
+    if(v>=1e6) return (v/1e6).toFixed(1).replace(".",",")+" млн ₽";
+    if(v>=1e4) return Math.round(v/1e3)+" тыс ₽";
+    return groupFmt(String(v))+" ₽";
+  };
+  const approx = v => "≈ "+fmtCompact(v);   // «≈ 84,6 млн ₽» — оценка выглядит оценкой
+
   const revName = it => (it.revLabel || "Прирост выручки");
-  const GRPCOL = {crm:"#7a4fe0", agents:"#4b64e0", other:"#1f9c86"};
-  const cards = items.map(it=>{
-    const num2 = String(it.num).padStart(2,"0");
-    const gc = GRPCOL[it.group] || "#7a4fe0";
+  // сквозная нумерация 01, 02… по выбранным; суммы округлённые (точные — только в таблице затрат)
+  const cards = items.map((it,i)=>{
+    const num2 = String(i+1).padStart(2,"0");
     let eff="";
-    if(it.effect.includes("fot")) eff += "<div class='fot'>Экономия ФОТ — <b>"+fmtMoney(it.fot)+"</b>/мес · "+fmtMoney(it.fot*12)+"/год</div>";
-    if(it.effect.includes("rev") && (it.revLabel==="Потенциал базы" || !HIDE_REVENUE)) eff += "<div class='rev'>"+revName(it)+" — <b>"+fmtMoney(it.rev)+"</b>/мес · "+fmtMoney(it.rev*12)+"/год</div>";
-    return "<div class='card' style='--gc:"+gc+"'><div class='chead'><span class='cnum'>"+num2+"</span><span class='ctitle'>"+esc(it.title)+"</span></div>"
+    if(it.effect.includes("fot")) eff += "<div class='fot'>Экономия ФОТ — <b>≈ "+fmtCompact(it.fot*12)+"</b> / год</div>";
+    if(it.effect.includes("rev") && (it.revLabel==="Потенциал базы" || !HIDE_REVENUE)) eff += "<div class='rev'>"+revName(it)+" — <b>≈ "+fmtCompact(it.rev*12)+"</b> / год</div>";
+    return "<div class='card'><div class='chead'><span class='cnum'>"+num2+"</span><span class='ctitle'>"+esc(it.title)+"</span></div>"
       + "<div class='cdesc'>"+esc(it.sub||"")+"</div><div class='ceff'>"+eff+"</div></div>";
   }).join("");
 
   const coChips = comp.length
-    ? "<div class='co-grid'>" + comp.map(c=>"<div class='co-chip'>"+c.label+": <b>"+c.val+"</b></div>").join("") + "</div>"
+    ? "<div class='co-grid'>" + comp.map(c=>"<div class='co-cell'><div class='cl'>"+esc(c.label)+"</div><div class='cv'>"+esc(c.val)+"</div></div>").join("") + "</div>"
     : "<div class='co-empty'>Данные о компании не заполнены.</div>";
 
   // строки затрат
@@ -1162,48 +1171,32 @@ function buildReportHtml(tariff, company){
   if(totalInt>0) costRows += "<div class='trow'><span>Настройка от интегратора (разово)</span><span class='tv'>"+fmtMoney(totalInt)+"</span></div>";
   costRows += "<div class='trow total'><span>Итого стоимость перехода (1-й год)</span><span class='tv'>"+fmtMoney(costs1)+"</span></div>";
 
-  const GRAD = "linear-gradient(95deg,hsl(265,75%,60%),hsl(245,80%,60%),hsl(220,82%,56%),hsl(195,80%,50%),hsl(175,65%,46%),hsl(160,60%,46%))";
-  const SPECTRUM = "linear-gradient(90deg,hsl(265,75%,60%),hsl(245,80%,60%),hsl(220,82%,58%),hsl(195,80%,52%),hsl(175,65%,48%),hsl(160,60%,48%))";
 
-  // компактный формат сумм для инфографики: 84 605 700 → «84,6 млн ₽»
-  const fmtCompact = v => {
-    v = Math.round(v);
-    if(v>=1e9) return (v/1e9).toFixed(1).replace(".",",")+" млрд ₽";
-    if(v>=1e6) return (v/1e6).toFixed(1).replace(".",",")+" млн ₽";
-    if(v>=1e4) return Math.round(v/1e3)+" тыс ₽";
-    return groupFmt(String(v))+" ₽";
-  };
-  const approx = v => "≈ "+fmtCompact(v);   // «≈ 84,6 млн ₽» — оценка выглядит оценкой
-  const lgRow = (col,name,valTxt,pctTxt) =>
-    "<div class='lg-row'><span class='lg-dot' style='background:"+col+"'></span>"
-    + "<span class='lg-name'>"+name+"</span><span class='lg-val'>"+valTxt+"</span>"
-    + "<span class='lg-pct' style='color:"+col+"'>"+pctTxt+"</span></div>";
-
-  // 1) DONUT — доля групп в гарантированной экономии (только при ≥2 непустых группах)
+  // 1) Доля групп в экономии — горизонтальная стековая полоса (только при ≥2 непустых группах)
   const GRP = [
-    {key:"crm",    name:"Сценарии в CRM", col:"#7a4fe0"},
-    {key:"agents", name:"ИИ-агенты",      col:"#4b64e0"},
-    {key:"other",  name:"Общие сценарии", col:"#1f9c86"},
+    {key:"crm",    name:"Сценарии в CRM"},
+    {key:"agents", name:"ИИ-агенты"},
+    {key:"other",  name:"Общие сценарии"},
   ];
-  const activeGrp = GRP.map(g=>({name:g.name, col:g.col, val:groupEcon[g.key]||0})).filter(g=>g.val>0);
+  const GBLUE = ["#2064b4", "#5a92cc", "#a7c9e8"];   // оттенки одного синего
+  const activeGrp = GRP.map(g=>({name:g.name, val:groupEcon[g.key]||0}))
+                       .filter(g=>g.val>0).sort((a,b)=>b.val-a.val);
   let donutSection = "";
   if(activeGrp.length>=2 && econ>0){
-    let acc=0;
-    const circles = activeGrp.map(g=>{
+    activeGrp.forEach((g,i)=>{ g.col = GBLUE[i] || GBLUE[GBLUE.length-1]; });
+    const segs = activeGrp.map(g=>{
       const pct = g.val/econ*100;
-      const c = "<circle cx='90' cy='90' r='64' pathLength='100' fill='none' stroke-width='26' stroke='"+g.col
-        + "' stroke-dasharray='"+pct.toFixed(2)+" "+(100-pct).toFixed(2)+"' stroke-dashoffset='"+(-acc).toFixed(2)+"'></circle>";
-      acc += pct; return c;
+      return "<div class='gseg' style='flex:"+pct.toFixed(2)+" 1 0;background:"+g.col+"'>"+Math.round(pct)+"%</div>";
     }).join("");
-    const legend = activeGrp.map(g=>lgRow(g.col, g.name, fmtCompact(g.val*12)+" / год", Math.round(g.val/econ*100)+"%")).join("");
+    const legend = activeGrp.map(g=>{
+      const pct = Math.round(g.val/econ*100);
+      return "<div class='glrow'><span class='gldot' style='background:"+g.col+"'></span>"
+        + "<span class='glname'>"+g.name+"</span>"
+        + "<span class='glval'>"+fmtCompact(g.val*12)+" ("+pct+"%)</span></div>";
+    }).join("");
     donutSection = "<section><p class='sec-eyebrow'>Доля групп в экономии</p>"
-      + "<div class='donut-wrap'>"
-      + "<div class='donut'><svg viewBox='0 0 180 180' width='180' height='180' aria-hidden='true'>"
-      + "<g transform='rotate(-90 90 90)'>"+circles+"</g>"
-      + "<text x='90' y='84' text-anchor='middle' class='d-num'>"+fmtCompact(econYear).replace(" ₽","")+"</text>"
-      + "<text x='90' y='101' text-anchor='middle' class='d-unit'>₽ / год</text></svg></div>"
-      + "<div class='legend'>"+legend+"</div>"
-      + "</div></section>";
+      + "<div class='gbar'>"+segs+"</div>"
+      + "<div class='glegend'>"+legend+"</div></section>";
   }
 
   // 2) Потенциал роста — ОТДЕЛЬНЫЙ блок, только при выбранных повторных продажах (потенциал базы).
@@ -1278,18 +1271,21 @@ function buildReportHtml(tariff, company){
     // ---- версия calc: самоподключение + заявка на помощь ----
     const CTA_SELF = "https://helpdesk.bitrix24.ru/open/28790658/";   // инструкция по подключению
     const CTA_HELP = "https://www.bitrix24.ru/register/ai.php";       // форма заявки на помощь
+    const shortUrl = u => u.replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\/$/,"");
     return "<section class='cta-sec'><p class='sec-eyebrow'>Как подключить BitrixGPT</p>"
       + "<div class='cta-grid'>"
       + "<div class='cta-card primary'>"
         + "<div class='cta-h'><span class='cta-i'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M13 2 3 14h7l-1 8 10-12h-7z'/></svg></span>Подключить самостоятельно</div>"
         + "<div class='cta-p'>Пошаговая инструкция по подключению BitrixGPT — можно настроить самим, без ожидания.</div>"
         + "<a class='cta-btn' href='"+CTA_SELF+"' target='_blank' rel='noopener'>Открыть инструкцию <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12h14M13 6l6 6-6 6'/></svg></a>"
+        + "<div class='cta-url'>"+shortUrl(CTA_SELF)+"</div>"
         + "<div class='cta-qr'><span class='qrbox'>"+makeQrSvg(CTA_SELF)+"</span><span class='cta-cap'>Наведите камеру телефона — откроется инструкция по подключению</span></div>"
       + "</div>"
       + "<div class='cta-card'>"
         + "<div class='cta-h'><span class='cta-i alt'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg></span>Нужна помощь с внедрением</div>"
         + "<div class='cta-p'>Поможем подобрать сценарии и настроить под ваши процессы. Оставьте заявку — специалисты Битрикс24 свяжутся с вами.</div>"
         + "<a class='cta-btn sec' href='"+CTA_HELP+"' target='_blank' rel='noopener'>Оставить заявку</a>"
+        + "<div class='cta-url'>"+shortUrl(CTA_HELP)+"</div>"
         + "<div class='cta-qr'><span class='qrbox'>"+makeQrSvg(CTA_HELP)+"</span><span class='cta-cap'>Скан — откроется форма заявки на помощь</span></div>"
       + "</div>"
       + "</div></section>";
@@ -1301,124 +1297,125 @@ function buildReportHtml(tariff, company){
     + "<link href='https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap' rel='stylesheet'>"
     + "<style>"
     + "*{box-sizing:border-box}"
-    + "@page{size:A4;margin:14mm 13mm 15mm}"
-    + ":root{--ink:#15151b;--muted:#6b6b78;--faint:#9a9aa6;--line:#ececef;--panel:#fafafb}"
+    + "@page{size:A4;margin:14mm 16mm}"
+    + "@page{@bottom-center{content:'стр. ' counter(page) ' из ' counter(pages);font-family:'JetBrains Mono',monospace;font-size:8pt;color:#555}}"
+    + ":root{--ink:#1a1a22;--muted:#565660;--faint:#74747d;--line:#e3e3e9;--panel:#f6f7f9;--blue:#2064b4;--blued:#17457c;--bluesoft:#eaf1fa;--green:#1e8a58;--greensoft:#e9f5ee;--orange:#c2621d;--orangesoft:#fbeee2}"
     + "html,body{margin:0}"
-    + "body{font-family:Manrope,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);font-size:12.5px;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+    + "body{font-family:Manrope,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);font-size:10.5pt;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
     // экранный предпросмотр — «лист» A4 на сером фоне
     + "@media screen{body{background:#e9e9f0;padding:26px 16px 40px}"
-    + ".sheet{width:210mm;max-width:100%;min-height:297mm;margin:0 auto;background:#fff;padding:16mm 15mm 18mm;box-shadow:0 10px 40px rgba(20,20,35,.18);border-radius:2px}}"
+    + ".sheet{width:210mm;max-width:100%;min-height:297mm;margin:0 auto;background:#fff;padding:16mm 16mm 18mm;box-shadow:0 10px 40px rgba(20,20,35,.18);border-radius:2px}}"
     + "@media print{.sheet{width:auto;min-height:0;margin:0;padding:0;box-shadow:none}}"
     // шапка
-    + ".spectrum{height:5px;border-radius:3px;margin-bottom:20px;background:"+SPECTRUM+"}"
+    + ".spectrum{height:4px;border-radius:2px;margin-bottom:20px;background:var(--blue)}"
     + ".brandline{display:flex;align-items:center;gap:10px;margin-bottom:14px}"
-    + ".logo{width:30px;height:30px;border-radius:9px;flex:none;background:"+GRAD+";display:flex;align-items:center;justify-content:center}"
+    + ".logo{width:30px;height:30px;border-radius:8px;flex:none;background:var(--blue);display:flex;align-items:center;justify-content:center}"
     + ".logo svg{width:17px;height:17px;color:#fff}"
-    + ".brandline .bt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}"
-    + ".co{font-weight:800;font-size:15px;margin:0 0 4px;color:var(--ink)}"
-    + ".wordmark{font-family:Unbounded,Manrope,sans-serif;font-weight:800;font-size:29px;line-height:1.12;letter-spacing:-.015em;margin:0;padding-bottom:.06em;background:"+GRAD+";-webkit-background-clip:text;background-clip:text;color:transparent}"
-    + ".meta{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--faint);margin:9px 0 22px}"
-    + ".sec-eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:0 0 12px;break-after:avoid}"
-    + "section{margin-bottom:24px}"
+    + ".brandline .bt{font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}"
+    + ".co{font-weight:800;font-size:12pt;margin:0 0 4px;color:var(--ink)}"
+    + ".wordmark{font-family:Unbounded,Manrope,sans-serif;font-weight:800;font-size:24pt;line-height:1.1;letter-spacing:-.015em;margin:0;color:var(--blue)}"
+    + ".meta{font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:var(--muted);margin:9px 0 22px}"
+    + ".sec-eyebrow{font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 12px;break-after:avoid}"
+    + "section{margin-bottom:22px}"
     // герой-эффект
-    + ".hero{border:1px solid #e6e6ee;border-radius:18px;padding:22px 24px;text-align:center;background:linear-gradient(180deg,#fbfcff,#f4f6ff);break-inside:avoid}"
-    + ".hero .hl{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:8px}"
-    + ".hero .hnum{font-family:Unbounded,sans-serif;font-weight:800;font-size:46px;line-height:1;letter-spacing:-.02em;background:"+GRAD+";-webkit-background-clip:text;background-clip:text;color:transparent}"
-    + ".hero .hm{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--muted);margin-top:9px}"
-    + ".hero .hnet{margin-top:8px;font-size:13.5px;font-weight:600;color:var(--muted)}"
-    + ".hero .hnet b{color:hsl(160,55%,34%);font-weight:800}"
-    + ".hero .hv{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:14px;background:hsl(160,55%,95%);border-radius:14px;padding:8px 16px;font-size:12.5px;font-weight:600;color:hsl(160,30%,28%);max-width:100%;text-align:center;line-height:1.4}"
-    + ".hero .hv .vb{font-family:Unbounded,sans-serif;font-weight:800;font-size:14px;color:hsl(160,60%,34%)}"
+    + ".hero{border:1px solid var(--line);border-radius:12px;padding:22px 24px;text-align:center;background:var(--bluesoft);break-inside:avoid}"
+    + ".hero .hl{font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:var(--blued);font-weight:700;margin-bottom:8px}"
+    + ".hero .hnum{font-family:Unbounded,sans-serif;font-weight:800;font-size:38pt;line-height:1;letter-spacing:-.02em;color:var(--blue)}"
+    + ".hero .hm{font-family:'JetBrains Mono',monospace;font-size:10pt;color:var(--muted);margin-top:9px}"
+    + ".hero .hv{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:14px;background:var(--greensoft);border-radius:10px;padding:8px 16px;font-size:9.5pt;font-weight:600;color:#1c5c3d;max-width:100%;text-align:center;line-height:1.4}"
+    + ".hero .hv .vb{font-family:Unbounded,sans-serif;font-weight:800;font-size:10.5pt;color:var(--green)}"
     // блок потенциала роста (сверх экономии)
-    + ".pot{display:flex;align-items:flex-start;gap:14px;border:1px dashed hsl(160,42%,60%);border-radius:14px;padding:16px 18px;background:hsl(160,50%,97%);break-inside:avoid}"
-    + ".pot-ico{flex:none;width:34px;height:34px;border-radius:10px;background:hsl(160,55%,92%);display:flex;align-items:center;justify-content:center;color:hsl(160,60%,34%)}"
+    + ".pot{display:flex;align-items:flex-start;gap:14px;border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--greensoft);break-inside:avoid}"
+    + ".pot-ico{flex:none;width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid #cfe6da;display:flex;align-items:center;justify-content:center;color:var(--green)}"
     + ".pot-ico svg{width:19px;height:19px}"
     + ".pot-body{flex:1;min-width:0}"
-    + ".pot-num{font-family:Unbounded,sans-serif;font-weight:800;font-size:22px;letter-spacing:-.01em;color:hsl(160,60%,32%);line-height:1.1}"
-    + ".pot-num .pot-unit{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:12px;color:hsl(160,30%,42%);letter-spacing:.02em}"
-    + ".pot-desc{margin-top:7px;font-size:12px;line-height:1.55;color:var(--muted)}.pot-desc b{color:hsl(160,45%,30%);font-weight:800}"
-    // строка «в двух словах»
-    + ".takeaway{border:1px solid #e2e2ee;border-left:3px solid #4b64e0;border-radius:10px;background:#fafaff;padding:12px 16px;font-size:12.5px;line-height:1.55;color:var(--muted);margin-bottom:24px;break-inside:avoid}"
+    + ".pot-num{font-family:Unbounded,sans-serif;font-weight:800;font-size:17pt;letter-spacing:-.01em;color:var(--green);line-height:1.1}"
+    + ".pot-num .pot-unit{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:9pt;color:#3d6b55;letter-spacing:.02em}"
+    + ".pot-desc{margin-top:7px;font-size:9pt;line-height:1.55;color:var(--muted)}.pot-desc b{color:#1c5c3d;font-weight:800}"
+    // строка «в двух словах» — единый стиль карточек
+    + ".takeaway{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px 16px;font-size:9.5pt;line-height:1.55;color:var(--muted);margin-bottom:22px;break-inside:avoid}"
     + ".takeaway b{color:var(--ink);font-weight:800}"
-    // данные о компании
-    + ".co-grid{display:flex;flex-wrap:wrap;gap:8px}"
-    + ".co-chip{border:1px solid var(--line);border-radius:10px;padding:8px 13px;font-size:12.5px;background:var(--panel);color:var(--muted)}"
-    + ".co-chip b{font-weight:800;color:var(--ink)}.co-empty{color:var(--faint);font-size:12.5px}"
-    // инфографика — donut + легенда
-    + ".donut-wrap{display:flex;align-items:center;gap:26px;flex-wrap:wrap;break-inside:avoid}"
-    + ".donut{flex:none}.donut svg{display:block}"
-    + ".d-num{font-family:Unbounded,sans-serif;font-weight:800;font-size:22px;fill:var(--ink)}"
-    + ".d-unit{font-family:'JetBrains Mono',monospace;font-size:9.5px;fill:var(--faint);letter-spacing:.04em}"
-    + ".legend{flex:1;min-width:220px;display:flex;flex-direction:column;gap:9px}"
-    + ".lg-row{display:flex;align-items:baseline;gap:11px}"
-    + ".lg-dot{width:11px;height:11px;border-radius:3px;flex:none;transform:translateY(1px)}"
-    + ".lg-name{flex:1;font-size:13px;font-weight:700}"
-    + ".lg-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap}"
-    + ".lg-pct{font-family:Unbounded,sans-serif;font-weight:800;font-size:13.5px;min-width:40px;text-align:right}"
-    // экономия против затрат
+    // данные о компании — грид 3 колонки, label сверху / значение снизу
+    + ".co-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}"
+    + ".co-cell{border:1px solid var(--line);border-radius:8px;padding:10px 13px;background:var(--panel)}"
+    + ".co-cell .cl{font-size:8pt;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;line-height:1.3}"
+    + ".co-cell .cv{font-weight:800;font-size:11pt;color:var(--ink);font-variant-numeric:tabular-nums}"
+    + ".co-empty{color:var(--muted);font-size:9.5pt}"
+    + "@media(max-width:520px){.co-grid{grid-template-columns:1fr 1fr}}"
+    // доля групп — горизонтальная стековая полоса 100%
+    + ".gbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}"
+    + ".gseg{display:flex;align-items:center;justify-content:center;min-width:46px;color:#fff;font-family:Unbounded,sans-serif;font-weight:800;font-size:9pt}"
+    + ".gseg + .gseg{border-left:2px solid #fff}"
+    + ".glegend{display:flex;flex-direction:column;gap:7px;margin-top:12px}"
+    + ".glrow{display:flex;align-items:baseline;gap:10px;font-size:9.5pt}"
+    + ".gldot{width:10px;height:10px;border-radius:2px;flex:none;transform:translateY(1px)}"
+    + ".glname{flex:1;font-weight:700}"
+    + ".glval{font-family:'JetBrains Mono',monospace;color:var(--muted);white-space:nowrap}"
+    // экономия против затрат — зелёный (выгода) / оранжевый (затраты)
     + ".cmp{break-inside:avoid}"
     + ".cmp-row{display:flex;align-items:center;gap:12px;margin-bottom:11px}"
-    + ".cmp-lbl{width:135px;flex:none;font-size:12.5px;color:var(--muted)}"
-    + ".cmp-bar{flex:1;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:flex-end;padding-right:12px}"
-    + ".cmp-eff{background:linear-gradient(90deg,hsl(175,55%,42%),hsl(160,58%,40%))}"
-    + ".cmp-bar span{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12.5px;color:#fff}"
+    + ".cmp-lbl{width:135px;flex:none;font-size:9.5pt;color:var(--muted)}"
+    + ".cmp-bar{flex:1;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:12px}"
+    + ".cmp-eff{background:var(--green)}"
+    + ".cmp-bar span{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:9.5pt;color:#fff}"
     + ".cmp-costwrap{flex:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap}"
-    + ".cmp-cost-sliver{height:30px;border-radius:3px;background:hsl(18,75%,50%);flex:none}"
-    + ".cmp-cost-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12.5px;color:hsl(18,70%,42%)}"
-    + ".cmp-note{font-size:11.5px;color:var(--faint)}"
+    + ".cmp-cost-sliver{height:30px;border-radius:3px;background:var(--orange);flex:none}"
+    + ".cmp-cost-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:9.5pt;color:var(--orange)}"
+    + ".cmp-note{font-size:8.5pt;color:var(--muted)}"
     + ".cmp-cards{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;border-top:1px solid var(--line);padding-top:14px}"
-    + ".cmp-card{flex:1;min-width:150px;background:var(--panel);border-radius:9px;padding:10px 14px}"
-    + ".cmp-card .cc-l{font-size:11px;color:var(--muted);margin-bottom:3px}"
-    + ".cmp-card .cc-v{font-family:Unbounded,sans-serif;font-weight:800;font-size:17px;color:var(--ink)}"
-    + ".cmp-card.pos{background:hsl(160,55%,96%)}.cmp-card.pos .cc-v{color:hsl(160,55%,34%)}"
-    + ".cmp-card.acc{background:#f6f4ff}.cmp-card.acc .cc-v{color:#5a45c9}"
-    // карточки — с цветным акцентом группы
-    + ".card{border:1px solid var(--line);border-left:3px solid var(--gc,#7a4fe0);border-radius:12px;padding:14px 16px;margin-bottom:10px;break-inside:avoid}"
+    + ".cmp-card{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}"
+    + ".cmp-card .cc-l{font-size:8pt;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.03em}"
+    + ".cmp-card .cc-v{font-family:Unbounded,sans-serif;font-weight:800;font-size:13pt;color:var(--ink);font-variant-numeric:tabular-nums}"
+    + ".cmp-card.pos{background:var(--greensoft)}.cmp-card.pos .cc-v{color:var(--green)}"
+    + ".cmp-card.acc{background:var(--bluesoft)}.cmp-card.acc .cc-v{color:var(--blue)}"
+    // карточки сценариев — единый стиль, без цветного левого бордера
+    + ".card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:#fff;break-inside:avoid}"
     + ".chead{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}"
-    + ".cnum{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gc,#7a4fe0);font-weight:600;flex:none}"
-    + ".ctitle{font-weight:800;font-size:14.5px;letter-spacing:-.01em}"
-    + ".cdesc{color:var(--muted);font-size:12.5px;line-height:1.5;margin-bottom:10px}"
-    + ".ceff{display:flex;flex-direction:column;gap:3px;font-size:12.5px;border-top:1px solid var(--line);padding-top:9px}"
-    + ".ceff b{font-weight:800}.ceff .fot b{color:hsl(220,82%,50%)}.ceff .rev{color:hsl(160,55%,36%)}.ceff .rev b{color:hsl(160,55%,34%)}"
-    // таблицы
-    + ".tot{border:1px solid var(--line);border-radius:12px;overflow:hidden;break-inside:avoid}"
-    + ".trow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 15px;border-bottom:1px solid var(--line);font-size:13px}"
+    + ".cnum{font-family:'JetBrains Mono',monospace;font-size:9.5pt;color:var(--blue);font-weight:700;flex:none}"
+    + ".ctitle{font-weight:800;font-size:11pt;letter-spacing:-.01em}"
+    + ".cdesc{color:var(--muted);font-size:9.5pt;line-height:1.5;margin-bottom:10px}"
+    + ".ceff{display:flex;flex-direction:column;gap:3px;font-size:9.5pt;border-top:1px solid var(--line);padding-top:9px}"
+    + ".ceff b{font-weight:800}.ceff .fot b{color:var(--blue)}.ceff .rev{color:var(--green)}.ceff .rev b{color:var(--green)}"
+    // таблицы — числа моноширинные, по правому краю
+    + ".tot{border:1px solid var(--line);border-radius:10px;overflow:hidden;break-inside:avoid}"
+    + ".trow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 15px;border-bottom:1px solid var(--line);font-size:9.5pt;color:var(--muted)}"
     + ".trow:last-child{border-bottom:0}"
-    + ".trow .tv{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}"
-    + ".trow.total{background:var(--panel);font-weight:800}.trow.total .tv{color:hsl(18,70%,45%)}"
-    + ".rec{margin-top:11px;border:1px dashed #d8d8de;border-radius:11px;padding:12px 15px;font-size:12.5px;color:var(--muted);break-inside:avoid}"
-    + ".ft{margin-top:16px;color:var(--faint);font-size:10px;border-top:1px solid var(--line);padding-top:11px;line-height:1.5}"
+    + ".trow .tv{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;text-align:right;color:var(--ink)}"
+    + ".trow.total{background:var(--panel);font-weight:800;color:var(--ink)}.trow.total .tv{color:var(--orange)}"
+    + ".rec{margin-top:11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:12px 15px;font-size:9pt;color:var(--muted);break-inside:avoid}"
+    + ".ft{margin-top:16px;color:#555;font-size:8pt;border-top:1px solid var(--line);padding-top:11px;line-height:1.55}"
     // CTA — дальнейшие шаги
     + ".cta-sec{break-inside:avoid}"
     + ".cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}"
-    + ".cta-card{border:1px solid var(--line);border-radius:12px;padding:16px 17px;break-inside:avoid}"
-    + ".cta-card.primary{border:2px solid #4b57e0;background:#fbfbff}"
-    + ".cta-h{display:flex;align-items:center;gap:9px;font-weight:800;font-size:14px;margin-bottom:7px}"
-    + ".cta-i{width:28px;height:28px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;background:#eef0ff;color:#4b57e0}"
-    + ".cta-i svg{width:16px;height:16px}.cta-i.alt{background:hsl(160,50%,93%);color:#1f9c86}"
-    + ".cta-p{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:13px}"
-    + ".cta-btn{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:12.5px;color:#fff;text-decoration:none;border-radius:9px;padding:9px 15px;background:linear-gradient(95deg,hsl(245,80%,60%),hsl(195,80%,50%))}"
-    + ".cta-btn svg{width:15px;height:15px}.cta-btn.sec{background:#fff;color:#4b57e0;border:1.5px solid #d9dcfb}"
-    + ".cta-qr{display:flex;align-items:center;gap:11px;margin-top:14px;border-top:1px solid var(--line);padding-top:13px}"
-    + ".qrbox{width:64px;height:64px;flex:none;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}"
+    + ".cta-card{border:1px solid var(--line);border-radius:10px;padding:16px 17px;background:#fff;break-inside:avoid}"
+    + ".cta-card.primary{border-color:var(--blue);background:var(--bluesoft)}"
+    + ".cta-h{display:flex;align-items:center;gap:9px;font-weight:800;font-size:10.5pt;margin-bottom:7px}"
+    + ".cta-i{width:28px;height:28px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--line);color:var(--blue)}"
+    + ".cta-i svg{width:16px;height:16px}.cta-i.alt{color:var(--green)}"
+    + ".cta-p{font-size:9pt;color:var(--muted);line-height:1.5;margin-bottom:12px}"
+    + ".cta-btn{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:9.5pt;color:#fff;text-decoration:none;border-radius:8px;padding:9px 15px;background:var(--blue)}"
+    + ".cta-btn svg{width:15px;height:15px}.cta-btn.sec{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}"
+    + ".cta-url{font-family:'JetBrains Mono',monospace;font-size:8.5pt;color:var(--muted);margin-top:7px;word-break:break-all}"
+    + ".cta-qr{display:flex;align-items:center;gap:11px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}"
+    + ".qrbox{width:80px;height:80px;flex:none;border:1px solid var(--line);border-radius:6px;padding:4px;background:#fff}"
     + ".qrbox svg{display:block}"
-    + ".cta-cap{font-size:10.5px;color:var(--faint);line-height:1.45}"
+    + ".cta-cap{font-size:8.5pt;color:var(--muted);line-height:1.45}"
+    + "@media print{.qrbox{width:22mm;height:22mm}.mgr-qr .qrbox{width:24mm;height:24mm}}"
     // CTA serv — карточка менеджера
-    + ".mgr{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:18px 20px;break-inside:avoid}"
-    + ".mgr-ava{width:56px;height:56px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Unbounded,sans-serif;font-weight:800;font-size:19px;background:linear-gradient(135deg,hsl(258,52%,32%),hsl(190,52%,34%))}"
+    + ".mgr{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:18px 20px;background:#fff;break-inside:avoid}"
+    + ".mgr-ava{width:56px;height:56px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Unbounded,sans-serif;font-weight:800;font-size:14pt;background:var(--blue)}"
     + ".mgr-info{flex:1;min-width:200px}"
-    + ".mgr-name{font-weight:800;font-size:17px;letter-spacing:-.01em}"
-    + ".mgr-role{font-size:12.5px;color:var(--muted);margin:2px 0 10px}"
+    + ".mgr-name{font-weight:800;font-size:12pt;letter-spacing:-.01em}"
+    + ".mgr-role{font-size:9pt;color:var(--muted);margin:2px 0 10px}"
     + ".mgr-contacts{display:flex;flex-direction:column;gap:6px}"
-    + ".mgr-c{display:flex;align-items:center;gap:9px;font-size:13.5px;color:#3a3a44;text-decoration:none;font-weight:600}"
-    + ".mgr-c svg{width:16px;height:16px;flex:none;color:#4b57e0}"
-    + ".mgr-qr{flex:none;text-align:center;width:98px}"
-    + ".mgr-qr .qrbox{width:88px;height:88px;margin:0 auto 5px}"
-    + ".mgr-foot{margin-top:13px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);line-height:1.55}"
-    // повторяющийся колонтитул при печати
+    + ".mgr-c{display:flex;align-items:center;gap:9px;font-size:9.5pt;color:var(--ink);text-decoration:none;font-weight:600}"
+    + ".mgr-c svg{width:16px;height:16px;flex:none;color:var(--blue)}"
+    + ".mgr-qr{flex:none;text-align:center;width:104px}"
+    + ".mgr-qr .qrbox{width:92px;height:92px;margin:0 auto 5px}"
+    + ".mgr-foot{margin-top:13px;border-top:1px solid var(--line);padding-top:12px;font-size:9pt;color:var(--muted);line-height:1.55}"
+    // собственный колонтитул при печати (бренд слева, дата справа; № страницы — через @page)
     + ".runfoot{display:none}"
-    + "@media print{.runfoot{display:flex;position:fixed;left:0;right:0;bottom:0;align-items:center;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.03em;color:var(--faint);padding-top:3px;border-top:1px solid var(--line)}"
-    + ".runfoot .rf-bar{position:absolute;top:-1px;left:0;width:46px;height:2px;background:"+SPECTRUM+"}}"
+    + "@media print{.runfoot{display:flex;position:fixed;left:0;right:0;bottom:0;align-items:center;justify-content:space-between;gap:12px;font-family:'JetBrains Mono',monospace;font-size:8pt;letter-spacing:.02em;color:#555}}"
     + "</style></head><body>"
     + "<div class='sheet'>"
     + "<div class='spectrum'></div>"
@@ -1431,7 +1428,7 @@ function buildReportHtml(tariff, company){
     + "<div class='hl'>"+(onlyPot ? "Потенциал роста за год · оценка" : "Экономия ФОТ за год")+"</div>"
     + "<div class='hnum'>"+approx(onlyPot ? potYear : econYear)+"</div>"
     + "<div class='hm'>"+approx(onlyPot ? pot : econ)+" / мес</div>"
-    + (paybackTxt && costs1>0 ? "<div class='hv'><svg viewBox='0 0 24 24' fill='none' stroke='hsl(160,60%,40%)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' style='width:17px;height:17px'><path d='M20 6 9 17l-5-5'/></svg><span>Окупается за <span class='vb'>"+paybackTxt+"</span> · затраты — "+costPctTxt+" годовой экономии</span></div>" : "")
+    + (paybackTxt && costs1>0 ? "<div class='hv'><svg viewBox='0 0 24 24' fill='none' stroke='var(--green)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' style='width:17px;height:17px'><path d='M20 6 9 17l-5-5'/></svg><span>"+(paybackMonths<1 ? "Окупается <span class='vb'>менее чем за месяц</span>" : "Окупается за <span class='vb'>"+paybackTxt+"</span>")+" · затраты — "+costPctTxt+" годовой экономии</span></div>" : "")
     + "</div></section>"
     // строка «в двух словах» — для не-аналитика и пересылки
     + (takeaway ? "<div class='takeaway'>"+takeaway+"</div>" : "")
@@ -1453,7 +1450,7 @@ function buildReportHtml(tariff, company){
     // мелкий шрифт — в самом низу
     + "<div class='ft'>Расчёт носит оценочный характер. Налоговая модель упрощённая (оклад на руки × 1,4); стоимость часа = оклад × 1,4 ÷ 176. Цены тарифов Bitrix24 — со скидкой при оплате за год; подписка BitrixGPT — при оплате за год.</div>"
     + "</div>"
-    + "<div class='runfoot'><span class='rf-bar'></span><span>BitrixGPT · Экономический эффект</span><span>"+dateStr+"</span></div>"
+    + "<div class='runfoot'><span>BitrixGPT · Экономический эффект</span><span>"+dateStr+"</span></div>"
     + "</body></html>";
 }
 
