@@ -1110,7 +1110,15 @@ const MANAGER_DEFAULT = {
 const MGR_LS_KEY = "bitrixgpt_manager_v1";
 function mgrLoad(){ try{ return JSON.parse(localStorage.getItem(MGR_LS_KEY)) || {}; }catch(e){ return {}; } }
 function mgrSave(o){ try{ localStorage.setItem(MGR_LS_KEY, JSON.stringify(o)); }catch(e){} }
-function getManager(){ return Object.assign({}, MANAGER_DEFAULT, mgrLoad()); }
+// Значения менеджера для отчёта: если что-то введено — берём только введённое (пустые поля скрываются);
+// если не введено ничего — показываем пример по умолчанию. MANAGER_DEFAULT в полях — только placeholder.
+function getManager(){
+  const o = mgrLoad();
+  const base = (o && Object.keys(o).length) ? o : MANAGER_DEFAULT;
+  const out = {};
+  Object.keys(MANAGER_DEFAULT).forEach(k=>{ out[k] = (base[k] != null) ? base[k] : ""; });
+  return out;
+}
 
 function buildReportHtml(tariff, company, isBox){
   const {items, totalFot, totalRev, totalPot, totalInt, groupEcon} = collectResults();
@@ -1724,7 +1732,7 @@ if(typeof integratorCost === "function"){
     ["phone","Телефон"], ["email","E-mail"], ["telegram","Telegram"],
     ["qrLink","Ссылка для QR (t.me / wa.me / сайт)"]
   ];
-  const eff = getManager();
+  const saved = mgrLoad();
 
   // блок настроек после «Данные о компании»
   const box = document.createElement("div");
@@ -1743,7 +1751,7 @@ if(typeof integratorCost === "function"){
   rem.innerHTML = "Контакты в отчёте: <b class='mgr-rem-name'></b> <button type='button' class='mgr-edit'>изменить</button>";
   const msub = modal.querySelector(".msub");
   if(msub && msub.parentNode) msub.parentNode.insertBefore(rem, msub.nextSibling);
-  const updateReminder = ()=>{ rem.querySelector(".mgr-rem-name").textContent = getManager().name || "не заполнены"; };
+  const updateReminder = ()=>{ const s=mgrLoad(); rem.querySelector(".mgr-rem-name").textContent = (s.name && s.name.trim()) ? s.name : "не заполнены"; };
 
   // поля (предзаполнены эффективными значениями; сохранение по вводу)
   const grid = box.querySelector("#mgr-grid");
@@ -1751,7 +1759,7 @@ if(typeof integratorCost === "function"){
     const fld = document.createElement("div"); fld.className = "mgr-fld";
     const lab = document.createElement("label"); lab.textContent = f[1];
     const inp = document.createElement("input"); inp.type = "text"; inp.dataset.mgr = f[0];
-    inp.value = eff[f[0]] != null ? String(eff[f[0]]) : "";
+    inp.value = (saved[f[0]] != null) ? String(saved[f[0]]) : "";   // пусто → показывается placeholder-пример
     inp.placeholder = MANAGER_DEFAULT[f[0]] || "";
     inp.addEventListener("input", ()=>{ const o = mgrLoad(); o[f[0]] = inp.value; mgrSave(o); updateReminder(); });
     fld.appendChild(lab); fld.appendChild(inp); grid.appendChild(fld);
