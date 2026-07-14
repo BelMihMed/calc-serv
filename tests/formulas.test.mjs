@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadCalculator, loadIntegratorDefaults } from "./helpers/extract-calculator.mjs";
+import {
+  createCompanyAutofillHarness,
+  loadCalculator,
+  loadIntegratorDefaults
+} from "./helpers/extract-calculator.mjs";
 
 const INDEX_FILE = new URL("../index.html", import.meta.url);
 const calculator = loadCalculator(INDEX_FILE);
@@ -82,6 +86,30 @@ test("support agent validation caps AI-closed requests at total requests", () =>
 
   assert.deepEqual(plain(scenario.validate(values)), { ai: "Не больше «обращений всего»" });
   assertClose(scenario.compute(values).fot, 14291.666667, "support capped fot");
+});
+
+test("company autofill keeps scenario fields changed by hand", () => {
+  const targets = {
+    '#card-9 .num-in[data-k="mgr"]': { value: "manual" },
+    '#card-10 .num-in[data-k="emp"]': { value: "old" },
+    '#card-11 .num-in[data-k="emp"]': { value: "old" },
+    '#card-3 .num-in[data-k="emp"]': { value: "old" },
+    '#card-7 .num-in[data-k="emp"]': { value: "old" }
+  };
+  const harness = createCompanyAutofillHarness(INDEX_FILE, {
+    9: { values: { mgr: 15 }, dirty: { mgr: true } },
+    10: { values: { emp: 0 }, dirty: {} },
+    11: { values: { emp: 0 }, dirty: {} },
+    3: { values: { emp: 0 }, dirty: {} },
+    7: { values: { emp: 0 }, dirty: {} }
+  }, targets);
+
+  harness.applyCompany({ value: "42", dataset: { comp: "empCount" } });
+
+  assert.equal(harness.state[9].values.mgr, 15);
+  assert.equal(targets['#card-9 .num-in[data-k="mgr"]'].value, "manual");
+  assert.equal(harness.state[10].values.emp, 42);
+  assert.equal(targets['#card-10 .num-in[data-k="emp"]'].value, "42");
 });
 
 test("serv integrator defaults are stable when present", { skip: !integratorDefaults }, () => {

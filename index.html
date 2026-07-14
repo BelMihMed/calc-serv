@@ -680,7 +680,7 @@ function onNumInput(inp){
 
 const fmtMoney = n => Math.round(n).toLocaleString("ru-RU") + " ₽";
 const fmtInt   = n => Math.round(n).toLocaleString("ru-RU");
-const state = {}; // state[id] = {selected, values}
+const state = {}; // state[id] = {selected, values, dirty, segments}
 
 const ICON_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
 
@@ -725,7 +725,7 @@ root.appendChild(vibeGroup);
 
 scenarios.forEach((sc, idx)=>{
   const num = idx + 1;
-  state[sc.id] = {selected:false, values:{}, segments:[]};
+  state[sc.id] = {selected:false, values:{}, dirty:{}, segments:[]};
   sc.fields.forEach(f=> state[sc.id].values[f.k] = f.def);
 
   const card = document.createElement("div");
@@ -790,6 +790,7 @@ scenarios.forEach((sc, idx)=>{
   card.querySelectorAll(".fields .num-in:not([disabled])").forEach(inp=>{
     inp.addEventListener("input", ()=>{
       const n = onNumInput(inp);
+      state[sc.id].dirty[inp.dataset.k] = true;
       state[sc.id].values[inp.dataset.k] = inp.dataset.pct ? n/100 : n;  // % -> доля
       recompute();
     });
@@ -864,6 +865,7 @@ function applyCompany(inp){
   const val = parseNum(inp.value);
   (AUTOFILL[inp.dataset.comp] || []).forEach(([scId, fk])=>{
     if(!state[scId]) return;
+    if(state[scId].dirty[fk]) return;
     state[scId].values[fk] = val;
     const target = document.querySelector(`#card-${scId} .num-in[data-k="${fk}"]`);
     if(target) target.value = groupFmt(String(val));

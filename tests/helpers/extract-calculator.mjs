@@ -119,3 +119,29 @@ globalThis.__integratorDefaults = INTEGRATOR_DEFAULT;
   new vm.Script(script, { filename: "integrator-extract.js" }).runInContext(context);
   return context.__integratorDefaults;
 }
+
+export function createCompanyAutofillHarness(indexFile, initialState, targets = {}) {
+  const source = fs.readFileSync(indexFile, "utf8");
+  const autofill = extractDeclaration(source, "const AUTOFILL = {", "{", "}");
+  const applyCompany = extractFunction(source, "applyCompany");
+  const script = `
+const parseNum = value => Number(String(value).replace(/\\s/g, "").replace(",", ".")) || 0;
+const groupFmt = value => String(value);
+const state = globalThis.__initialState;
+const document = {
+  querySelector(selector) {
+    return globalThis.__targets[selector] || null;
+  }
+};
+${autofill}
+${applyCompany}
+globalThis.__autofillHarness = { applyCompany, state, targets: globalThis.__targets };
+`;
+
+  const context = vm.createContext({
+    __initialState: initialState,
+    __targets: targets
+  });
+  new vm.Script(script, { filename: "autofill-extract.js" }).runInContext(context);
+  return context.__autofillHarness;
+}
