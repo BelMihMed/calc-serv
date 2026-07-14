@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import {
   createCompanyAutofillHarness,
   loadCalculator,
-  loadIntegratorDefaults
+  loadIntegratorDefaults,
+  loadPriceConfig
 } from "./helpers/extract-calculator.mjs";
 
 const INDEX_FILE = new URL("../index.html", import.meta.url);
 const calculator = loadCalculator(INDEX_FILE);
 const integratorDefaults = loadIntegratorDefaults(INDEX_FILE);
+const priceConfig = loadPriceConfig(INDEX_FILE);
 
 function defaultsFor(scenario) {
   return Object.fromEntries(scenario.fields.map((field) => [field.k, field.def]));
@@ -110,6 +112,26 @@ test("company autofill keeps scenario fields changed by hand", () => {
   assert.equal(targets['#card-9 .num-in[data-k="mgr"]'].value, "manual");
   assert.equal(harness.state[10].values.emp, 42);
   assert.equal(targets['#card-10 .num-in[data-k="emp"]'].value, "42");
+});
+
+test("tariff prices live in a single dated config", () => {
+  assert.match(priceConfig.actualOn, /^\d{4}-\d{2}-\d{2}$/);
+
+  const cloudById = Object.fromEntries(priceConfig.cloud.map((tariff) => [tariff.id, tariff]));
+  assert.equal(cloudById.basic.subYear, 9600);
+  assert.equal(cloudById.pro.monthly, 9793);
+  assert.equal(cloudById.ent10000.subYear, 3840000);
+  assert.equal(cloudById.enterprise.selectable, true);
+
+  const boxById = Object.fromEntries(priceConfig.box.map((tariff) => [tariff.id, tariff]));
+  assert.equal(boxById.box_cp500.subYear, 210000);
+
+  const source = calculator.source;
+  assert.equal((source.match(/const PRICE_CONFIG =/g) || []).length, 1);
+  assert.equal(source.includes("const TAR_M"), false);
+  assert.equal(source.includes("const TAR_IDX"), false);
+  assert.equal(source.includes("const TAR_NAME"), false);
+  assert.equal(source.includes("const SUB_Y"), false);
 });
 
 test("serv integrator defaults are stable when present", { skip: !integratorDefaults }, () => {

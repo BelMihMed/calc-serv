@@ -69,7 +69,9 @@ function extractDeclaration(source, marker, openChar, closeChar) {
 }
 
 function extractConstants(source) {
-  const start = source.indexOf("const TAX =");
+  const start = source.includes("const PRICE_CONFIG =")
+    ? source.indexOf("const PRICE_CONFIG =")
+    : source.indexOf("const TAX =");
   const end = source.indexOf("/* ---------- Конфигурация сценариев", start);
   if (start < 0 || end < 0) throw new Error("Cannot find calculator constants");
   return source.slice(start, end);
@@ -97,11 +99,12 @@ globalThis.__calculator = {
   costHour,
   costMinute,
   scenarios,
-  computeScenario
+  computeScenario,
+  source: globalThis.__source
 };
 `;
 
-  const context = vm.createContext({});
+  const context = vm.createContext({ __source: source });
   new vm.Script(script, { filename: "calculator-extract.js" }).runInContext(context);
   return context.__calculator;
 }
@@ -118,6 +121,19 @@ globalThis.__integratorDefaults = INTEGRATOR_DEFAULT;
   const context = vm.createContext({});
   new vm.Script(script, { filename: "integrator-extract.js" }).runInContext(context);
   return context.__integratorDefaults;
+}
+
+export function loadPriceConfig(indexFile) {
+  const source = fs.readFileSync(indexFile, "utf8");
+  const priceConfig = extractDeclaration(source, "const PRICE_CONFIG = {", "{", "}");
+  const script = `
+${priceConfig}
+globalThis.__priceConfig = PRICE_CONFIG;
+`;
+
+  const context = vm.createContext({});
+  new vm.Script(script, { filename: "price-config-extract.js" }).runInContext(context);
+  return context.__priceConfig;
 }
 
 export function createCompanyAutofillHarness(indexFile, initialState, targets = {}) {
