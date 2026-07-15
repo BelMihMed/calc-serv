@@ -43,6 +43,29 @@ test("calculator constants match the documented baseline", () => {
   assertClose(calculator.costMinute(100000), 13.257576, "costMinute(100000)");
 });
 
+test("financial result uses only FOT minus first-year costs", () => {
+  const result = plain(calculator.calculateEconomics(100000, 200000));
+  assert.deepEqual(result, {
+    fotMonth: 100000,
+    fotYear: 1200000,
+    firstYearCosts: 200000,
+    netFirstYear: 1000000,
+    paybackMonths: 2,
+    costSharePercent: 16.666666666666664
+  });
+
+  const noFot = plain(calculator.calculateEconomics(0, 9600));
+  assert.equal(noFot.netFirstYear, -9600);
+  assert.equal(noFot.paybackMonths, 0);
+
+  const source = calculator.source;
+  assert.match(source, /calculateEconomics\(fot, COST_YEAR(?: \+ integ)?\)/);
+  assert.match(source, /calculateEconomics\(econ, costs1\)/);
+  assert.equal(source.includes("const grand = fot + rev + pot"), false);
+  assert.equal(source.includes("onlyPot"), false);
+  assert.equal(source.includes("totalFot + totalRev + totalPot"), false);
+});
+
 test("all default scenario formulas keep their reference values", () => {
   const expected = {
     1: { fot: 58333.333333, rev: 125000 },

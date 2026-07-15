@@ -107,8 +107,8 @@
   .navbar .chip[data-go="sec-vibe"]{color:#c2651f;background:#ffe7ce}
   .navbar .chip.go-summary{color:#fff;background:var(--grad-cta)}
   .navbar .chip.go-summary:hover{filter:brightness(1.06)}
-  .navbar .mini{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);white-space:nowrap}
-  .navbar .mini b{color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:13.5px;font-variant-numeric:tabular-nums}
+  .navbar .mini{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted);text-align:right}
+  .navbar .mini b{color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
   .group-crm,.group-agents,.group-other,.group-vibe,.summary{scroll-margin-top:84px}
   @media(max-width:560px){.navbar .mini .cnt{display:none}}
 
@@ -175,7 +175,9 @@
   .sum-grid .fullrow{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14.5px}
   .sum-grid .fullrow .lbl2{display:inline-flex;align-items:center;gap:6px}
   .sum-grid .fullrow.int .v{color:#ffd0a8;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sum-grid .fullrow.costs .v{color:#ffd0a8;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
   .sum-grid .fullrow.net .v{color:#9ff5c4;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sum-grid .fullrow.net.negative .v{color:#ffd0a8}
   .summary .fullrow .info-btn{color:rgba(255,255,255,.85)}
   .summary .fullrow .info-btn:hover{color:#fff;background:rgba(255,255,255,.15)}
   .res-row.int .lbl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -207,6 +209,7 @@
     background:rgba(120,230,190,.16);border:1px solid rgba(160,240,205,.38);border-radius:14px;padding:12px 15px;font-size:14px;color:#eafff7}
   .verdict svg{width:18px;height:18px;color:#8ef0c6;flex:none}
   .verdict b{color:#8ef0c6}
+  .verdict.negative b{color:#ffd0a8}
   .summary .empty{color:rgba(255,255,255,.82);font-size:14.5px}
   .qual{margin-top:16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:13px 16px;font-size:14px;color:rgba(255,255,255,.9)}
   .summary .info-btn{color:rgba(255,255,255,.85)}
@@ -367,7 +370,7 @@
   <div id="scenarios"></div>
 
   <div class="summary" id="sec-summary">
-    <h2>Общий эффект BitrixGPT</h2>
+    <h2>Итоговая экономика BitrixGPT</h2>
     <div id="summary-body"></div>
     <button class="dl-btn" id="dl-btn" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -439,6 +442,20 @@ const costHour   = salary => salary * TAX / HOURS_MONTH;       // стоимос
 const costMinute = salary => costHour(salary) / 60;            // стоимость минуты
 
 const COST_YEAR = PRICE_CONFIG.cloud.find(t=>t.id==="basic").subYear;   // стоимость BitrixGPT, ₽/год (от)
+
+function calculateEconomics(fotMonth, firstYearCosts){
+  const safeFotMonth = Math.max(0, Number(fotMonth) || 0);
+  const safeFirstYearCosts = Math.max(0, Number(firstYearCosts) || 0);
+  const fotYear = safeFotMonth * 12;
+  return {
+    fotMonth: safeFotMonth,
+    fotYear,
+    firstYearCosts: safeFirstYearCosts,
+    netFirstYear: fotYear - safeFirstYearCosts,
+    paybackMonths: safeFotMonth > 0 ? safeFirstYearCosts / safeFotMonth : 0,
+    costSharePercent: fotYear > 0 ? safeFirstYearCosts / fotYear * 100 : 0,
+  };
+}
 
 /* ---------- Конфигурация сценариев (в порядке отображения) ---------- */
 const scenarios = [
@@ -974,11 +991,6 @@ function recompute(){
       rows += row(rl+", месяц", fmtMoney(r.rev), "rev");
       rows += row(rl+", год", fmtMoney(revY), "rev");
     }
-    const totMonth = r.fot + (showRev ? r.rev : 0);
-    if(sc.effect.includes("fot") && sc.effect.includes("rev") && showRev){
-      rows += `<div class="res-row total"><span class="lbl">Итого по сценарию, месяц</span><span class="val">${fmtMoney(totMonth)}</span></div>`;
-      rows += `<div class="res-row total"><span class="lbl">Итого по сценарию, год</span><span class="val">${fmtMoney(totMonth*12)}</span></div>`;
-    }
     rows += `<div class="res-row int"><span class="lbl">Настройка от интегратора (разово) <span class="int-note">· заполняется интегратором</span> <button class="info-btn" data-info="int-${sc.id}" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="val cost int-val"><input type="text" inputmode="decimal" class="int-in" data-int="${sc.id}" value="${groupFmt(String(integratorCost(sc)))}"><span class="int-cur">₽</span></span></div>`;
     resEl.innerHTML = rows;
   });
@@ -990,7 +1002,9 @@ function recompute(){
   const totEl = document.getElementById("nav-total");
   if(selectedCount){
     cntEl.textContent = "Выбрано: " + selectedCount + " " + plural(selectedCount, ["сценарий","сценария","сценариев"]);
-    totEl.innerHTML = "Эффект: <b>" + fmtMoney(totalFot + totalRev + totalPot) + "/мес</b>";
+    const extra = totalRev + totalPot;
+    totEl.innerHTML = "Экономия ФОТ: <b>" + fmtMoney(totalFot) + "/мес</b>"
+      + (extra>0 ? " · потенциал: <b>+ " + fmtMoney(extra) + "/мес</b>" : "");
   } else {
     cntEl.textContent = "Ничего не выбрано";
     totEl.innerHTML = "";
@@ -1041,40 +1055,34 @@ function renderSummary(fot, rev, pot, any, qual, integ){
     el.innerHTML = '<div class="empty">Выберите хотя бы один сценарий, чтобы увидеть совокупный эффект.</div>';
     return;
   }
-  const grand = fot + rev + pot;
-  const grandYear = grand*12;
-  const netYear = grandYear - integ;
-  const ratio = netYear / COST_YEAR;
-  const ratioTxt = ratio>=10 ? Math.round(ratio).toLocaleString("ru-RU")
-                             : ratio.toFixed(1).replace(".",",");
+  const economics = calculateEconomics(fot, COST_YEAR + integ);
+  const netNegative = economics.netFirstYear < 0;
   el.innerHTML = `
     <div class="sum-grid">
       <div class="h"></div><div class="h">Месяц</div><div class="h year">Год</div>
       <div class="lbl">Суммарная экономия ФОТ</div>
       <div class="num">${fmtMoney(fot)}</div>
       <div class="num year">${fmtMoney(fot*12)}</div>
-      ${rev>0?`<div class="lbl">Суммарный прирост выручки</div>
+      ${rev>0?`<div class="lbl">Дополнительно: прирост выручки</div>
       <div class="num">${fmtMoney(rev)}</div>
       <div class="num year">${fmtMoney(rev*12)}</div>`:''}
-      ${pot>0?`<div class="lbl">Раскрытый потенциал базы</div>
+      ${pot>0?`<div class="lbl">Дополнительно: потенциал базы</div>
       <div class="num">${fmtMoney(pot)}</div>
       <div class="num year">${fmtMoney(pot*12)}</div>`:''}
       <div class="sum-line"></div>
-      <div class="lbl row-total">Общий эффект BitrixGPT</div>
-      <div class="num grand eco">${fmtMoney(grand)}</div>
-      <div class="num grand eco year">${fmtMoney(grandYear)}</div>
       <div class="fullrow int"><span class="lbl2">Настройка от интегратора (разово) <button class="info-btn" data-info="int-summary" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="v">− ${fmtMoney(integ)}</span></div>
-      <div class="sum-line"></div>
-      <div class="fullrow net"><span class="lbl2">Выгода за 1-й год за вычетом настройки</span><span class="v">${fmtMoney(netYear)}</span></div>
       <div class="lbl cost">Стоимость BitrixGPT</div>
       <div class="num cost">от ${fmtMoney(COST_YEAR/12)}</div>
       <div class="num cost year">от ${fmtMoney(COST_YEAR)}</div>
-      ${netYear>0?`<div class="verdict">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>Выгода за 1-й год за вычетом настройки выгоднее стоимости BitrixGPT в <b>${ratioTxt}×</b></span>
-      </div>`:`<div class="verdict" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)">
-        <span>За 1-й год выгода пока не покрывает разовую настройку — увеличьте охват или число сценариев.</span>
-      </div>`}
+      <div class="sum-line"></div>
+      <div class="fullrow costs"><span>Минимальные затраты 1-го года</span><span class="v">− ${fmtMoney(economics.firstYearCosts)}</span></div>
+      <div class="fullrow net${netNegative?' negative':''}"><span>Чистая экономия ФОТ 1-го года</span><span class="v">${fmtMoney(economics.netFirstYear)}</span></div>
+      <div class="verdict${netNegative?' negative':''}"${netNegative?' style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)"':''}>
+        ${netNegative?'':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`}
+        <span>${netNegative
+          ? `Экономия ФОТ пока не покрывает минимальные затраты 1-го года — не хватает <b>${fmtMoney(Math.abs(economics.netFirstYear))}</b>`
+          : `После затрат 1-го года остаётся <b>${fmtMoney(economics.netFirstYear)}</b> чистой экономии ФОТ`}</span>
+      </div>
     </div>
   `;
 }
@@ -1165,9 +1173,8 @@ function getManager(){
 function buildReportHtml(tariff, company, isBox){
   const {items, totalFot, totalRev, totalPot, totalInt, groupEcon} = collectResults();
   const comp = collectCompany();
-  const econ = totalFot, econYear = econ*12;          // гарантированная экономия ФОТ — главное число отчёта
+  const econ = totalFot;                              // гарантированная экономия ФОТ — главное число отчёта
   const pot = totalPot + totalRev, potYear = pot*12;  // потенциал роста — отдельно, в окупаемость НЕ входит
-  const onlyPot = econ<=0 && pot>0;                   // выбраны только повторные продажи — потенциал становится главным
   const dateStr = new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
   // домен-источник: serv → partner.bitrixgpt.online, calc → bitrixgpt.online
   const SITE = (typeof integratorCost === "function") ? "partner.bitrixgpt.online" : "bitrixgpt.online";
@@ -1225,7 +1232,9 @@ function buildReportHtml(tariff, company, isBox){
     tariffLabel = "Доплата за тариф: «"+currentPrice.name+"» → «"+tgtName+"»";
     costs1 = payTariffY + tgtSubY + totalInt;
   }
-  const netEcon = econYear - costs1;                // чистая экономия 1-го года (без учёта потенциала)
+  const economics = calculateEconomics(econ, costs1);
+  const econYear = economics.fotYear;
+  const netEcon = economics.netFirstYear;
 
   // русская плюрализация: (5, "месяц","месяца","месяцев")
   const plural = (n, one, few, many) => {
@@ -1237,7 +1246,7 @@ function buildReportHtml(tariff, company, isBox){
   };
   // окупаемость — ТОЛЬКО по гарантированной экономии, с округлением вниз до месяцев.
   // «менее месяца» правдоподобнее, чем «2 дня», и не подрывает доверие.
-  const paybackMonths = econ>0 ? costs1/econ : 0;
+  const paybackMonths = economics.paybackMonths;
   const fmtPayback = m => {
     if(m<=0) return "";
     if(m<1) return "менее месяца";
@@ -1245,7 +1254,7 @@ function buildReportHtml(tariff, company, isBox){
   };
   const paybackTxt = fmtPayback(paybackMonths);
   // доля затрат в годовой экономии — главный доверительный аргумент (процент не пугает)
-  const costPct = econYear>0 ? costs1/econYear*100 : 0;
+  const costPct = economics.costSharePercent;
   const costPctTxt = costPct<1 ? "менее 1%" : (costPct<10 ? costPct.toFixed(1).replace(".",",") : Math.round(costPct))+"%";
 
   // «в двух словах» — рутина в часах и штатных единицах (из гарантированной экономии ФОТ)
@@ -1357,10 +1366,9 @@ function buildReportHtml(tariff, company, isBox){
       + "<div class='glegend'>"+legend+"</div></section>";
   }
 
-  // 2) Потенциал роста — ОТДЕЛЬНЫЙ блок, только при выбранных повторных продажах (потенциал базы).
-  //    Если это единственное, что выбрано, он уже в hero — отдельным блоком не дублируем.
+  // 2) Потенциал роста — всегда отдельный блок и никогда не входит в экономику.
   let potBlock = "";
-  if(pot>0 && !onlyPot){
+  if(pot>0){
     potBlock = "<section><p class='sec-eyebrow'>Потенциал роста · сверх экономии</p>"
       + "<div class='pot'>"
       + "<div class='pot-ico'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 17l6-6 4 4 8-8M15 7h6v6'/></svg></div>"
@@ -1372,14 +1380,15 @@ function buildReportHtml(tariff, company, isBox){
 
   // 3) «Экономия против затрат» — полоса-сравнение (потенциал сюда НЕ входит)
   let cmpSection = "";
-  if(econYear>0 && costs1>0){
+  if(costs1>0){
     const netPos = netEcon>=0;
+    const costNote = econYear>0 ? "— это "+costPctTxt+" годовой экономии" : "— экономия ФОТ отсутствует";
     cmpSection = "<div class='cmp'>"
       + "<div class='cmp-row'><span class='cmp-lbl'>Экономия за год</span>"
       + "<div class='cmp-bar cmp-eff'><span>"+fmtMoney(econYear)+"</span></div></div>"
       + "<div class='cmp-row'><span class='cmp-lbl'>Затраты 1-го года</span>"
       + "<div class='cmp-costwrap'><span class='cmp-cost-sliver' style='width:max("+costPct.toFixed(2)+"%,7px)'></span>"
-      + "<span class='cmp-cost-val'>"+fmtMoney(costs1)+"</span><span class='cmp-note'>— это "+costPctTxt+" годовой экономии</span></div></div>"
+      + "<span class='cmp-cost-val'>"+fmtMoney(costs1)+"</span><span class='cmp-note'>"+costNote+"</span></div></div>"
       + "<div class='cmp-cards'>"
       + "<div class='cmp-card"+(netPos?" pos":"")+"'><div class='cc-l'>Чистая экономия 1-го года</div><div class='cc-v'>"+fmtMoney(netEcon)+"</div></div>"
       + (paybackTxt ? "<div class='cmp-card acc'><div class='cc-l'>Срок окупаемости</div><div class='cc-v'>"+paybackTxt+"</div></div>" : "")
@@ -1571,11 +1580,11 @@ function buildReportHtml(tariff, company, isBox){
     + "<div class='brandline'><span class='logo'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v18M3 12h18'/></svg></span><span class='bt'>Bitrix24 · BitrixGPT · Экономический эффект</span></div>"
     + "<h1 class='wordmark'>Экономический эффект BitrixGPT</h1>"
     + "<div class='meta'>Отчёт сформирован "+dateStr+" · "+(isBox?"коробка · ":"")+"тариф «"+esc(tariff.name)+"»</div></header>"
-    // 1) ГЛАВНОЕ ЧИСЛО — гарантированная экономия (или потенциал, если выбраны только повторные продажи)
+    // 1) ГЛАВНОЕ ЧИСЛО — только гарантированная экономия ФОТ
     + "<section><div class='hero'>"
-    + "<div class='hl'>"+(onlyPot ? "Потенциал роста за год · оценка" : "Экономия ФОТ за год")+"</div>"
-    + "<div class='hnum'>"+approx(onlyPot ? potYear : econYear)+"</div>"
-    + "<div class='hm'>"+approx(onlyPot ? pot : econ)+" / мес</div>"
+    + "<div class='hl'>Экономия ФОТ за год</div>"
+    + "<div class='hnum'>"+approx(econYear)+"</div>"
+    + "<div class='hm'>"+approx(econ)+" / мес</div>"
     + (paybackTxt && costs1>0 ? "<div class='hv'><svg viewBox='0 0 24 24' fill='none' stroke='var(--green)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' style='width:17px;height:17px'><path d='M20 6 9 17l-5-5'/></svg><span>"+(paybackMonths<1 ? "Окупается <span class='vb'>менее чем за месяц</span>" : "Окупается за <span class='vb'>"+paybackTxt+"</span>")+" · затраты — "+costPctTxt+" годовой экономии</span></div>" : "")
     + "</div></section>"
     // строка «в двух словах» — для не-аналитика и пересылки
@@ -1838,7 +1847,7 @@ const INFO = {
   6:"Транскрибация встреч даёт три эффекта: встречи короче на 15%, участников меньше на 15% и ассистент не тратит время на протокол. Каждый эффект — это минуты × число встреч × стоимость минуты; всё суммируется.",
   7:"Считаем в два слагаемых. Все сотрудники (полная стоимость = ЗП × 1,4) получают +10% эффективности. Инициативные (доля от общего числа) — дополнительно по проценту «упрощение работы» (по умолчанию 30%). Экономия = сумма обоих эффектов.",
 };
-const SUMMARY_INFO = "Складываем экономию ФОТ по всем выбранным сценариям и отдельно — прирост выручки. Их сумма — общий эффект. Годовые суммы = месячные × 12. Ниже сравниваем эффект за год со стоимостью подписки BitrixGPT. Стоимость часа работы = оклад на руки × 1,4 ÷ 176 рабочих часов.";
+const SUMMARY_INFO = "Экономию ФОТ складываем по всем выбранным сценариям и умножаем на 12. Из годовой экономии ФОТ вычитаем минимальные известные затраты первого года: подписку BitrixGPT и настройку интегратора. Потенциал и прирост выручки показываем дополнительно и в расчёт окупаемости не включаем. Стоимость часа работы = оклад на руки × 1,4 ÷ 176 рабочих часов.";
 
 const INTEGRATOR_INFO = {
   1:"Интегратор настроит распознавание звонков и привязку расшифровок к карточкам сделок под вашу телефонию и воронки. Поможет задать, какие поля карточки заполнять автоматически, и обучит менеджеров работать с резюме звонка. Стоимость зависит от числа менеджеров, которых нужно подключить и обучить.",
@@ -1902,7 +1911,7 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeDrawer(); i
 function openInfo(key){
   const t = document.getElementById("info-title");
   const x = document.getElementById("info-text");
-  if(key==="summary"){ t.textContent = "Как считается общий эффект"; x.textContent = SUMMARY_INFO; }
+  if(key==="summary"){ t.textContent = "Как считается итоговая экономика"; x.textContent = SUMMARY_INFO; }
   else if(key==="int-summary"){ t.textContent = "Настройка от интегратора"; x.textContent = INTEGRATOR_SUMMARY; }
   else if(String(key).indexOf("int-")===0){ const id = String(key).slice(4); const scn = scenarios.find(s=>String(s.id)===id); t.textContent = scn ? "Настройка от интегратора: " + scn.title : "Настройка от интегратора"; x.textContent = INTEGRATOR_INFO[id] || ""; }
   else { const sc = scenarios.find(s=>String(s.id)===String(key)); t.textContent = sc ? "Как считается: " + sc.title : "Как считается"; x.textContent = INFO[key] || ""; }

@@ -98,6 +98,7 @@ globalThis.__calculator = {
   COST_YEAR,
   costHour,
   costMinute,
+  calculateEconomics,
   scenarios,
   computeScenario,
   source: globalThis.__source
