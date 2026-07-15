@@ -66,6 +66,82 @@ test("financial result uses only FOT minus first-year costs", () => {
   assert.equal(source.includes("totalFot + totalRev + totalPot"), false);
 });
 
+test("tariff recommendation covers Enterprise upgrades and box licenses", () => {
+  assert.equal(calculator.getRecommendedCloudTariff(100).id, "pro");
+  assert.equal(calculator.getRecommendedCloudTariff(101).id, "ent250");
+  assert.equal(
+    calculator.getCloudRecommendationText(calculator.getRecommendedCloudTariff(100), "100", false),
+    "Оптимален тариф «Профессиональный»."
+  );
+  assert.match(
+    calculator.getCloudRecommendationText(calculator.getRecommendedCloudTariff(100), "100", true),
+    /сценариев с ИИ-агентами/
+  );
+  assert.match(
+    calculator.getCloudRecommendationText(calculator.getRecommendedCloudTariff(101), "101", false),
+    /Энтерпрайз \(250\)/
+  );
+
+  const newEnterprise = calculator.calculateCloudFirstYearCosts("none", 101);
+  assert.equal(newEnterprise.tariffYear, 285516);
+  assert.equal(newEnterprise.subscriptionYear, 130560);
+  assert.equal(newEnterprise.firstYearCosts, 416076);
+
+  const basicToEnterprise = calculator.calculateCloudFirstYearCosts("basic", 101);
+  assert.equal(basicToEnterprise.tariffYear, 264600);
+  assert.equal(basicToEnterprise.firstYearCosts, 395160);
+
+  const proToEnterprise = calculator.calculateCloudFirstYearCosts("pro", 101);
+  assert.equal(proToEnterprise.tariffYear, 168000);
+  assert.equal(proToEnterprise.firstYearCosts, 298560);
+
+  const enterpriseTo1000 = calculator.calculateCloudFirstYearCosts("enterprise", 501);
+  assert.equal(enterpriseTo1000.target.id, "ent1000");
+  assert.equal(enterpriseTo1000.tariffYear, 554400);
+  assert.equal(enterpriseTo1000.firstYearCosts, 938400);
+
+  const existingPro = calculator.calculateCloudFirstYearCosts("pro", 100);
+  assert.equal(existingPro.tariffYear, 0);
+  assert.equal(existingPro.firstYearCosts, 57600);
+
+  const boxFor12 = calculator.calculateBoxFirstYearCosts(12, "box_crm");
+  assert.equal(boxFor12.tariff.id, "box_crm");
+  assert.equal(boxFor12.licenseSurcharge, 0);
+  assert.equal(boxFor12.subscriptionYear, 19500);
+  assert.equal(boxFor12.firstYearCosts, 19500);
+
+  const boxHigherWithSameUserLimit = calculator.calculateBoxFirstYearCosts(12, "box_shop");
+  assert.equal(boxHigherWithSameUserLimit.tariff.id, "box_shop");
+  assert.equal(boxHigherWithSameUserLimit.upgradeRequired, false);
+
+  const boxFor51 = calculator.calculateBoxFirstYearCosts(51, "box_cp50");
+  assert.equal(boxFor51.tariff.id, "box_cp100");
+  assert.equal(boxFor51.upgradeRequired, true);
+  assert.equal(boxFor51.licenseSurcharge, 70000);
+  assert.equal(boxFor51.firstYearCosts, 150000);
+
+  const boxMatchingTarget = calculator.calculateBoxFirstYearCosts(51, "box_cp100");
+  assert.equal(boxMatchingTarget.tariff.id, "box_cp100");
+  assert.equal(boxMatchingTarget.upgradeRequired, false);
+  assert.equal(boxMatchingTarget.firstYearCosts, 80000);
+
+  const boxAlreadyHigher = calculator.calculateBoxFirstYearCosts(51, "box_cp500", 500000);
+  assert.equal(boxAlreadyHigher.tariff.id, "box_cp500");
+  assert.equal(boxAlreadyHigher.upgradeRequired, false);
+  assert.equal(boxAlreadyHigher.licenseSurcharge, 0);
+  assert.equal(boxAlreadyHigher.firstYearCosts, 710000);
+
+  const boxFor1001 = calculator.calculateBoxFirstYearCosts(1001, "box_ent1000");
+  assert.equal(boxFor1001.tariff.id, "box_ent2000");
+  assert.equal(boxFor1001.licenseSurcharge, 899000);
+  assert.equal(boxFor1001.subscriptionYear, 760000);
+  assert.equal(boxFor1001.firstYearCosts, 1659000);
+  assert.equal(calculator.getBoxTariff("box_ent2000").users, 2000);
+  const boxOptions = calculator.getBoxTariffOptions().map((tariff) => tariff.id);
+  assert.ok(boxOptions.includes("box_crm"));
+  assert.ok(boxOptions.includes("box_ent10000"));
+});
+
 test("all default scenario formulas keep their reference values", () => {
   const expected = {
     1: { fot: 58333.333333, rev: 125000 },
@@ -147,7 +223,10 @@ test("tariff prices live in a single dated config", () => {
   assert.equal(cloudById.enterprise.selectable, true);
 
   const boxById = Object.fromEntries(priceConfig.box.map((tariff) => [tariff.id, tariff]));
+  assert.equal(boxById.box_shop.licenseYear, 109000);
   assert.equal(boxById.box_cp500.subYear, 210000);
+  assert.equal(boxById.box_ent1000.licenseYear, 1299000);
+  assert.equal(priceConfig.boxEnterpriseExtension.licenseYear, 899000);
 
   const source = calculator.source;
   assert.equal((source.match(/const PRICE_CONFIG =/g) || []).length, 1);

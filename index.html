@@ -417,17 +417,18 @@ const PRICE_CONFIG = {
     {id:"ent5000",    name:"Энтерпрайз (5000)",   rank:8, monthly:349993, subYear:1920000},
     {id:"ent10000",   name:"Энтерпрайз (10000)",  rank:9, monthly:699993, subYear:3840000},
   ],
-  // Коробочная версия («1С-Битрикс24», self-hosted). subYear — годовая подписка BitrixGPT+Маркетплейс
-  // (полная цена, без акции −50%). В затраты идёт ТОЛЬКО подписка; стоимость лицензии не учитывается.
+  // Коробочная версия («1С-Битрикс24», self-hosted). licenseYear — лицензия Битрикс24 на 12 месяцев,
+  // subYear — годовая подписка BitrixGPT+Маркетплейс. Цены без акционных скидок.
   box: [
-    {id:"box_crm",     name:"CRM",                    users:12,   subYear:19500},
-    {id:"box_shop",    name:"Интернет-магазин + CRM", users:12,   subYear:40000},
-    {id:"box_cp50",    name:"Корп. портал (50)",      users:50,   subYear:60000},
-    {id:"box_cp100",   name:"Корп. портал (100)",     users:100,  subYear:80000},
-    {id:"box_cp250",   name:"Корп. портал (250)",     users:250,  subYear:120000},
-    {id:"box_cp500",   name:"Корп. портал (500)",     users:500,  subYear:210000},
-    {id:"box_ent1000", name:"Энтерпрайз (1000)",      users:1000, subYear:450000},
+    {id:"box_crm",     name:"CRM",                    users:12,   licenseYear:59000,   subYear:19500},
+    {id:"box_shop",    name:"Интернет-магазин + CRM", users:12,   licenseYear:109000,  subYear:40000},
+    {id:"box_cp50",    name:"Корп. портал (50)",      users:50,   licenseYear:159000,  subYear:60000},
+    {id:"box_cp100",   name:"Корп. портал (100)",     users:100,  licenseYear:229000,  subYear:80000},
+    {id:"box_cp250",   name:"Корп. портал (250)",     users:250,  licenseYear:349000,  subYear:120000},
+    {id:"box_cp500",   name:"Корп. портал (500)",     users:500,  licenseYear:599000,  subYear:210000},
+    {id:"box_ent1000", name:"Энтерпрайз (1000)",      users:1000, licenseYear:1299000, subYear:450000},
   ],
+  boxEnterpriseExtension: {users:1000, licenseYear:899000, subYear:310000},
 };
 
 /* ---------- Базовые константы и формулы (Глоссарий) ---------- */
@@ -442,6 +443,102 @@ const costHour   = salary => salary * TAX / HOURS_MONTH;       // стоимос
 const costMinute = salary => costHour(salary) / 60;            // стоимость минуты
 
 const COST_YEAR = PRICE_CONFIG.cloud.find(t=>t.id==="basic").subYear;   // стоимость BitrixGPT, ₽/год (от)
+
+function getCloudTariff(id){
+  return PRICE_CONFIG.cloud.find(t=>t.id===id) || PRICE_CONFIG.cloud.find(t=>t.id==="none");
+}
+
+function getRecommendedCloudTariff(employees){
+  const users = Math.max(0, Number(employees) || 0);
+  let id = "pro"; // BitrixGPT всегда рекомендуем не ниже «Профессионального».
+  if(users>5000)      id = "ent10000";
+  else if(users>2000) id = "ent5000";
+  else if(users>1000) id = "ent2000";
+  else if(users>500)  id = "ent1000";
+  else if(users>250)  id = "ent500";
+  else if(users>100)  id = "ent250";
+  return getCloudTariff(id);
+}
+
+function getCloudRecommendationText(target, employeeLabel, agentsUsed){
+  if(target.id === "pro"){
+    return agentsUsed
+      ? "Для выбранных сценариев с ИИ-агентами нужен тариф не ниже «Профессионального»."
+      : "Оптимален тариф «Профессиональный».";
+  }
+  const base = "Для "+employeeLabel+" пользователей оптимален тариф «"+target.name+"».";
+  return agentsUsed
+    ? base+" Для выбранных сценариев с ИИ-агентами нужен тариф не ниже «Профессионального»."
+    : base+" «Профессиональный» — минимальный тариф для BitrixGPT.";
+}
+
+function calculateCloudFirstYearCosts(currentId, employees, extraCosts=0){
+  const current = getCloudTariff(currentId);
+  const target = getRecommendedCloudTariff(employees);
+  const targetTariffYear = target.monthly * 12;
+  const currentTariffYear = current.monthly * 12;
+  const tariffYear = current.rank >= target.rank ? 0 : targetTariffYear - currentTariffYear;
+  return {
+    current,
+    target,
+    tariffYear,
+    subscriptionYear: target.subYear,
+    firstYearCosts: tariffYear + target.subYear + Math.max(0, Number(extraCosts) || 0),
+  };
+}
+
+function getRequiredBoxTariffForUsers(employees){
+  const users = Math.max(1, Math.ceil(Number(employees) || 0));
+  const boxTariffs = PRICE_CONFIG.box;
+  const direct = boxTariffs.find(t=>t.users>=users);
+  if(direct) return direct;
+
+  const base = boxTariffs[boxTariffs.length-1];
+  const extension = PRICE_CONFIG.boxEnterpriseExtension;
+  const packs = Math.ceil((users-base.users)/extension.users);
+  const capacity = base.users + packs*extension.users;
+  return {
+    ...base,
+    id: "box_ent"+capacity,
+    name: "Энтерпрайз ("+capacity+")",
+    users: capacity,
+    licenseYear: base.licenseYear + packs*extension.licenseYear,
+    subYear: base.subYear + packs*extension.subYear,
+  };
+}
+
+function getBoxTariff(id){
+  const direct = PRICE_CONFIG.box.find(t=>t.id===id);
+  if(direct) return direct;
+  const match = /^box_ent(\d+)$/.exec(String(id || ""));
+  if(!match) return null;
+  const capacity = Number(match[1]);
+  const baseUsers = PRICE_CONFIG.box[PRICE_CONFIG.box.length-1].users;
+  return capacity>=baseUsers && capacity%1000===0 ? getRequiredBoxTariffForUsers(capacity) : null;
+}
+
+function getBoxTariffOptions(){
+  const options = [...PRICE_CONFIG.box];
+  for(let users=2000; users<=10000; users+=1000) options.push(getRequiredBoxTariffForUsers(users));
+  return options;
+}
+
+function calculateBoxFirstYearCosts(employees, currentId, extraCosts=0){
+  const current = getBoxTariff(currentId);
+  const target = getRequiredBoxTariffForUsers(employees);
+  const tariff = current && current.licenseYear>target.licenseYear ? current : target;
+  const upgradeRequired = !current || current.licenseYear<target.licenseYear;
+  const licenseSurcharge = upgradeRequired ? Math.max(0, tariff.licenseYear - (current ? current.licenseYear : 0)) : 0;
+  return {
+    current,
+    target,
+    tariff,
+    upgradeRequired,
+    licenseSurcharge,
+    subscriptionYear: tariff.subYear,
+    firstYearCosts: licenseSurcharge + tariff.subYear + Math.max(0, Number(extraCosts) || 0),
+  };
+}
 
 function calculateEconomics(fotMonth, firstYearCosts){
   const safeFotMonth = Math.max(0, Number(fotMonth) || 0);
@@ -1088,8 +1185,6 @@ function renderSummary(fot, rev, pot, any, qual, integ){
 }
 
 /* ---------- Документ для скачивания (PDF через печать) ---------- */
-const CLOUD_PRICE_BY_ID = Object.fromEntries(PRICE_CONFIG.cloud.map(t=>[t.id, t]));
-function getCloudPrice(id){ return CLOUD_PRICE_BY_ID[id] || CLOUD_PRICE_BY_ID.none; }
 function yearlyPriceLabel(value, from){
   if(!value) return "";
   return (from ? "от " : "") + fmtMoney(value) + "/год";
@@ -1103,11 +1198,10 @@ const TARIFFS = PRICE_CONFIG.cloud.filter(t=>t.selectable).map(t=>({
   id:t.id, name:t.name, rank:t.rank, monthly:t.monthly, costYear:t.subYear, subYear:t.subYear,
   from:t.from, variant:t.variant, price:t.price != null ? t.price : yearlyPriceLabel(t.subYear, t.from)
 }));
-const BOX_TARIFFS = PRICE_CONFIG.box.map(t=>({
+const BOX_TARIFFS = getBoxTariffOptions().map(t=>({
   ...t,
-  price: yearlyPriceLabel(t.subYear)
+  price:"лицензия "+fmtMoney(t.licenseYear)
 }));
-
 function fieldDisplay(f, val){
   if(f.suf==="доля") return (Math.round(val*1000)/10).toString().replace(".",",") + " %";
   return groupFmt(String(val)) + " " + f.suf;
@@ -1180,27 +1274,13 @@ function buildReportHtml(tariff, company, isBox){
   const SITE = (typeof integratorCost === "function") ? "partner.bitrixgpt.online" : "bitrixgpt.online";
   const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const companyLine = company ? "<div class='co'>"+esc(company)+"</div>" : "";
-  const special = (tariff.variant==="free" || tariff.variant==="none");
-
   const empEl = document.querySelector('.comp-in[data-comp="empCount"]');
   const employees = empEl ? parseNum(empEl.value) : 0;
+  const special = (tariff.variant==="free" || tariff.variant==="none");
   const agentsUsed = scenarios.some(sc => state[sc.id].selected && sc.agents);
-  const currentPrice = getCloudPrice(tariff.id);
-
-  // рекомендуемый тариф: не ниже «Профессионального» (нужен для BitrixGPT/агентов),
-  // а при большем числе пользователей — по ступеням Энтерпрайза (см. таблицу цен)
-  let targetKey;
-  if(employees>5000)      targetKey = "ent10000";
-  else if(employees>2000) targetKey = "ent5000";
-  else if(employees>1000) targetKey = "ent2000";
-  else if(employees>500)  targetKey = "ent1000";
-  else if(employees>250)  targetKey = "ent500";
-  else if(employees>100)  targetKey = "ent250";
-  else                    targetKey = "pro";
-  const isEnt = targetKey.startsWith("ent");   // Энтерпрайз-ступень (тариф считаем уже подключённым)
-
-  const targetPrice = getCloudPrice(targetKey);
-  const proPrice = getCloudPrice("pro");
+  const cloudCosts = calculateCloudFirstYearCosts(tariff.id, employees, totalInt);
+  const currentPrice = cloudCosts.current;
+  const targetPrice = cloudCosts.target;
   const curIdx = currentPrice.rank;
   const tgtIdx = targetPrice.rank;
   const tgtName = targetPrice.name;
@@ -1208,29 +1288,17 @@ function buildReportHtml(tariff, company, isBox){
   const tgtSubY = targetPrice.subYear;
 
   // доплата за тариф + итоговая стоимость 1-го года
-  let payTariffY, tariffLabel, costs1, boxName = "", boxSubY = 0;
-  if(isBox){                                        // Коробка: в затраты только годовая подписка редакции; лицензия НЕ учитывается
+  let payTariffY = 0, costs1, boxName = "", boxSubY = 0, boxLicenseSurcharge = 0, boxCosts = null;
+  if(isBox){
+    boxCosts = calculateBoxFirstYearCosts(employees, tariff && tariff.id, totalInt);
+    tariff = boxCosts.tariff;
     boxName = tariff.name;
-    boxSubY = tariff.subYear || 0;
-    payTariffY = 0;
-    tariffLabel = "Коробочная редакция «"+boxName+"»";
-    costs1 = boxSubY + totalInt;
-  } else if(isEnt){                                 // Энтерпрайз — тариф предполагаем уже подключённым, в затраты только подписка
-    payTariffY = 0;
-    tariffLabel = "Тариф «"+tgtName+"» — предполагается уже подключён";
-    costs1 = payTariffY + tgtSubY + totalInt;
-  } else if(special || curIdx===0){                 // бесплатный / нет Битрикс24 — полная стоимость
-    payTariffY = tgtTariffY;
-    tariffLabel = "Тариф «"+tgtName+"» (полная стоимость)";
-    costs1 = payTariffY + tgtSubY + totalInt;
-  } else if(curIdx >= tgtIdx){                       // текущий тариф уже подходит
-    payTariffY = 0;
-    tariffLabel = "Тариф «"+currentPrice.name+"» — уже подключён";
-    costs1 = payTariffY + tgtSubY + totalInt;
-  } else {                                           // апгрейд с текущего до рекомендованного
-    payTariffY = tgtTariffY - currentPrice.monthly*12;
-    tariffLabel = "Доплата за тариф: «"+currentPrice.name+"» → «"+tgtName+"»";
-    costs1 = payTariffY + tgtSubY + totalInt;
+    boxSubY = boxCosts.subscriptionYear;
+    boxLicenseSurcharge = boxCosts.licenseSurcharge;
+    costs1 = boxCosts.firstYearCosts;
+  } else {
+    payTariffY = cloudCosts.tariffYear;
+    costs1 = cloudCosts.firstYearCosts;
   }
   const economics = calculateEconomics(econ, costs1);
   const econYear = economics.fotYear;
@@ -1272,23 +1340,22 @@ function buildReportHtml(tariff, company, isBox){
     takeaway = "<b>Что это значит:</b> BitrixGPT берёт на себя рутинные операции, а команда занимается клиентами и продажами.";
   }
 
-  // разница с Профессиональным, если текущий тариф ниже, а рекомендация — не Профессиональный
-  let proNote = "";
-  if(!isBox && curIdx < proPrice.rank && tgtIdx < proPrice.rank){
-    const proDiff = proPrice.monthly*12 - (curIdx>0 ? currentPrice.monthly*12 : 0);
-    proNote = "Переход сразу на «Профессиональный»: доплата за тариф "+fmtMoney(proDiff)+"/год + подписка "+fmtMoney(proPrice.subYear)+"/год.";
-  }
   // рекомендация текстом
   let recommend = "";
-  if(isBox)
-    recommend = "Коробочная версия «"+boxName+"»: в затраты включена только годовая подписка BitrixGPT ("+fmtMoney(boxSubY)+"/год). Стоимость самой лицензии Битрикс24 в расчёт не входит.";
-  else if(isEnt)
-    recommend = "Для "+groupFmt(String(employees))+" пользователей нужен тариф «"+tgtName+"». Предполагаем, что он у вас уже подключён, поэтому в затраты входит только подписка BitrixGPT.";
-  else if(special) recommend = tariff.variant==="free"
-    ? "На бесплатном тарифе ИИ-агенты BitrixGPT недоступны — нужен платный тариф «Профессиональный». В расчёте — его полная стоимость плюс подписка."
-    : "У вас пока нет Битрикс24. Для ИИ-агентов нужен тариф «Профессиональный» — в расчёте его полная стоимость плюс подписка.";
-  else if(agentsUsed && curIdx < proPrice.rank)
-    recommend = "Вы используете ИИ-агентов — для них нужен тариф не ниже «Профессионального». Показана доплата к вашему тарифу.";
+  if(isBox){
+    const currentName = boxCosts.current ? boxCosts.current.name : "не выбрана";
+    if(boxCosts.upgradeRequired)
+      recommend = "Для "+groupFmt(String(employees))+" пользователей требуется редакция «"+boxName+"» (до "+groupFmt(String(tariff.users))+" пользователей). Переход с «"+currentName+"» учитывается в затратах.";
+    else if(boxCosts.current.id!==boxCosts.target.id)
+      recommend = "Текущая редакция «"+currentName+"» выше требуемой для "+groupFmt(String(employees))+" пользователей «"+boxCosts.target.name+"». Доплата за лицензию не нужна.";
+    else
+      recommend = "Текущая редакция «"+currentName+"» соответствует числу пользователей. Доплата за лицензию не нужна.";
+  }
+  else {
+    recommend = getCloudRecommendationText(targetPrice, groupFmt(String(employees)), agentsUsed);
+    if(special) recommend += " В расчёте — полная стоимость подходящего тарифа и подписка.";
+    else if(curIdx < tgtIdx) recommend += " В расчёте показана доплата к текущему тарифу.";
+  }
 
   // компактный формат сумм: 84 605 700 → «84,6 млн ₽»
   const fmtCompact = v => {
@@ -1317,19 +1384,21 @@ function buildReportHtml(tariff, company, isBox){
 
   // строки затрат
   let costRows;
-  if(isBox){                                       // Коробка: лицензия не в затратах, считаем только подписку
-    costRows = "<div class='trow'><span>Коробочная редакция «"+boxName+"» (до "+groupFmt(String(tariff.users))+" польз.) — лицензия</span><span class='tv'>не учитывается</span></div>";
+  if(isBox){
+    if(boxCosts.upgradeRequired)
+      costRows = "<div class='trow'><span>Доплата за переход с «"+boxCosts.current.name+"» до «"+boxName+"»</span><span class='tv'>"+fmtMoney(boxLicenseSurcharge)+"</span></div>";
+    else
+      costRows = "<div class='trow'><span>Текущая редакция Битрикс24 «"+boxName+"»</span><span class='tv'>доплата не нужна</span></div>";
     costRows += "<div class='trow'><span>Подписка BitrixGPT + Маркетплейс (коробка)</span><span class='tv'>"+fmtMoney(boxSubY/12)+"/мес · "+fmtMoney(boxSubY)+"/год</span></div>";
     if(totalInt>0) costRows += "<div class='trow'><span>Настройка от интегратора (разово)</span><span class='tv'>"+fmtMoney(totalInt)+"</span></div>";
     costRows += "<div class='trow total'><span>Итого стоимость 1-го года</span><span class='tv'>"+fmtMoney(costs1)+"</span></div>";
   } else {
     costRows = "<div class='trow'><span>Рекомендуемый тариф Bitrix24 — «"+tgtName+"»</span><span class='tv'>"+fmtMoney(targetPrice.monthly)+"/мес · "+fmtMoney(tgtTariffY)+"/год</span></div>";
-    if(isEnt){                                     // Энтерпрайз — тариф уже есть, в затраты не входит
-      costRows += "<div class='trow'><span>Тариф «"+tgtName+"» — предполагается уже подключён</span><span class='tv'>0 ₽</span></div>";
-    } else if(special || curIdx===0){
-      // полная стоимость тарифа уже указана в строке выше — отдельной строкой не дублируем
-    } else if(payTariffY>0){
-      costRows += "<div class='trow'><span>Доплата за тариф с «"+currentPrice.name+"» до «"+tgtName+"»</span><span class='tv'>"+fmtMoney(payTariffY)+"/год</span></div>";
+    if(payTariffY>0){
+      const tariffCostLabel = (special || curIdx===0)
+        ? "Стоимость тарифа «"+tgtName+"» в 1-й год"
+        : "Доплата за тариф с «"+currentPrice.name+"» до «"+tgtName+"»";
+      costRows += "<div class='trow'><span>"+tariffCostLabel+"</span><span class='tv'>"+fmtMoney(payTariffY)+"/год</span></div>";
     } else {
       costRows += "<div class='trow'><span>Тариф «"+currentPrice.name+"» — уже подключён</span><span class='tv'>0 ₽</span></div>";
     }
@@ -1599,7 +1668,6 @@ function buildReportHtml(tariff, company, isBox){
     + potBlock
     // 5) затраты и окупаемость (по экономии)
     + "<section><p class='sec-eyebrow'>Стоимость перехода и тариф</p>"+cmpSection+"<div class='tot'>"+costRows+"</div>"
-    + (proNote ? "<div class='rec'>"+proNote+"</div>" : "")
     + (recommend ? "<div class='rec'>"+recommend+"</div>" : "")
     + "</section>"
     // 6) CTA — дальнейшие шаги
@@ -1737,11 +1805,19 @@ document.querySelector(".wrap").appendChild(modal);
 
 let deployMode = "cloud";
 const tariffListEl = modal.querySelector("#tariff-list");
+function getCompanyEmployeeCount(){
+  const empEl = document.querySelector('.comp-in[data-comp="empCount"]');
+  return empEl ? parseNum(empEl.value) : 0;
+}
 function renderTariffList(){
   const list = deployMode==="box" ? BOX_TARIFFS : TARIFFS;
-  tariffListEl.innerHTML = list.map((t,i)=>"<label class='tariff-opt"+(i===0?" sel":"")+"'>"
-    + "<input type='radio' name='tariff' value='"+t.id+"'"+(i===0?" checked":"")+">"
-    + "<span class='nm'>"+t.name+"</span><span class='pr'>"+(t.price||"")+"</span></label>").join("");
+  const defaultId = list[0].id;
+  tariffListEl.innerHTML = list.map(t=>{
+    const selected = t.id===defaultId;
+    return "<label class='tariff-opt"+(selected?" sel":"")+"'>"
+    + "<input type='radio' name='tariff' value='"+t.id+"'"+(selected?" checked":"")+">"
+    + "<span class='nm'>"+t.name+"</span><span class='pr'>"+(t.price||"")+"</span></label>";
+  }).join("");
 }
 renderTariffList();
 
@@ -1768,10 +1844,12 @@ document.getElementById("modal-ok").addEventListener("click", ()=>{
   const checked = modal.querySelector("input[name=tariff]:checked");
   if(!checked) return;
   const isBox = deployMode==="box";
-  const list = isBox ? BOX_TARIFFS : TARIFFS;
   const company = document.getElementById("company-name").value.trim();
   modal.hidden = true;
-  openReport(list.find(t=>t.id===checked.value), company, isBox);
+  const tariff = isBox
+    ? BOX_TARIFFS.find(t=>t.id===checked.value)
+    : TARIFFS.find(t=>t.id===checked.value);
+  openReport(tariff, company, isBox);
 });
 
 /* ---------- Контакты менеджера (только serv): блок «Ваши контакты» + напоминание в модалке ---------- */
