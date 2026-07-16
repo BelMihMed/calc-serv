@@ -1328,7 +1328,7 @@ function buildReportHtml(tariff, company, isBox){
   // «в двух словах» — рутина в часах и штатных единицах (из гарантированной экономии ФОТ)
   const salEl = document.querySelector('.comp-in[data-comp="empSal"]');
   const empSalV = salEl ? parseNum(salEl.value) : 0;
-  const fte = empSalV>0 ? econ/(empSalV*1.4) : 0;
+  const fte = empSalV>0 ? econ/(empSalV*TAX) : 0;
   const hoursMonth = Math.round(fte*176);
   let takeaway = "";
   if(fte>=0.5 && hoursMonth>0){

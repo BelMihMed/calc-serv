@@ -41,6 +41,7 @@ test("calculator constants match the documented baseline", () => {
   assert.equal(calculator.COST_YEAR, 9600);
   assertClose(calculator.costHour(100000), 795.454545, "costHour(100000)");
   assertClose(calculator.costMinute(100000), 13.257576, "costMinute(100000)");
+  assert.equal(calculator.source.includes("empSalV*TAX"), true);
 });
 
 test("financial result uses only FOT minus first-year costs", () => {
