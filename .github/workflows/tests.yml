@@ -1,6 +1,7 @@
 name: Tests
 
 on:
+  workflow_dispatch:      # запуск вручную «по желанию» (вкладка Actions → Run workflow)
   pull_request:
   push:
     branches:
@@ -18,5 +19,5 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run formula tests
+      - name: Run formula and scenario tests
         run: npm test
