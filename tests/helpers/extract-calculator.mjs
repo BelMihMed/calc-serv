@@ -108,6 +108,8 @@ globalThis.__calculator = {
   calculateEconomics,
   scenarios,
   computeScenario,
+  REAL,
+  realOf,
   source: globalThis.__source
 };
 `;

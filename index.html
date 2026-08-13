@@ -14,9 +14,16 @@
     --ink:#15151b; --muted:#6b6b78; --faint:#9a9aa6; --line:#ececef; --panel:#f5f6f8;
     --accent:#4b57e0; --accent-soft:#eeeffd; --teal:#1f9c86; --teal-soft:#e7f6f2;
     --radius:18px;
-    --grad:linear-gradient(95deg,hsl(265,75%,60%),hsl(245,80%,60%),hsl(220,82%,56%),hsl(195,80%,50%),hsl(175,65%,46%),hsl(160,60%,46%));
+    /* цвета групп: акцент (кольца/чекбоксы), чернила (текст, ≥4.5:1 на своей подложке), подложка.
+       Набор акцентов прошёл CVD-валидацию (deutan/protan/tritan ΔE ≥ 8, normal ≥ 15). */
+    --crm:#5b2fbf;  --crm-ink:#5b2fbf;  --crm-bg:#f5f1fd;
+    --ag:#3987e5;   --ag-ink:#2b62c4;   --ag-bg:#e9f2fd;
+    --oth:#12866f;  --oth-ink:#0e6e5c;  --oth-bg:#ecf7f3;
+    --vibe:#c2651f; --vibe-ink:#9c4d15; --vibe-bg:#ffe7ce;
+    --grad:linear-gradient(95deg,hsl(259,63%,50%),hsl(232,68%,55%),hsl(212,75%,54%),hsl(196,80%,48%),hsl(176,66%,42%),hsl(160,60%,44%));
     --grad-num:linear-gradient(90deg,#c7b8ff,#86ecd6);
-    --grad-cta:linear-gradient(95deg,hsl(245,80%,60%),hsl(195,80%,50%));
+    --grad-cta:linear-gradient(95deg,hsl(250,70%,58%),hsl(205,78%,48%));
+    interpolate-size:allow-keywords; /* анимация height:auto в поддерживающих браузерах */
     --shadow:0 1px 2px rgba(20,20,30,.04),0 10px 30px rgba(20,20,30,.07);
     --card-shadow:0 1px 2px rgba(20,20,30,.04),0 4px 14px rgba(20,20,30,.04);
     --b24-blue:var(--accent); --b24-blue-dark:#3a45c9; --b24-text:var(--ink); --b24-muted:var(--muted);
@@ -28,8 +35,7 @@
     background:#fff;color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
   .wrap{max-width:960px;margin:0 auto;padding:26px 20px 64px}
 
-  .spectrum{height:5px;border-radius:3px;margin:0 0 26px;
-    background:linear-gradient(90deg,hsl(265,75%,60%),hsl(245,80%,60%),hsl(220,82%,58%),hsl(195,80%,52%),hsl(175,65%,48%),hsl(160,60%,48%))}
+  .spectrum{height:5px;border-radius:3px;margin:0 0 26px;background:var(--grad)}
   .head{margin-bottom:22px}
   .head .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:0 0 12px;max-width:none}
   .head h1{font-family:Unbounded,Manrope,sans-serif;font-weight:800;font-size:clamp(28px,5.2vw,46px);
@@ -53,11 +59,27 @@
   .comp-in.prefilled{color:#c19a4b;font-style:italic}
   @media(max-width:600px){.company-cols{grid-template-columns:1fr}}
 
+  /* «Ваш Битрикс24» — формат и текущий тариф (внутри блока компании) */
+  .b24-row{margin-top:16px;border-top:1px dashed #ecdcbe;padding-top:14px}
+  .b24-lbl{font-size:12.5px;color:var(--muted);margin-bottom:7px;line-height:1.3;font-weight:500}
+  .b24-lbl span{opacity:.72}
+  .b24-ctl{display:flex;align-items:stretch;gap:10px}
+  .b24-ctl .deploy-toggle{flex:none;width:236px;margin:0;background:rgba(255,255,255,.85)}
+  .b24-select{flex:1;min-width:0;display:flex;align-items:center;border:1.5px solid transparent;
+    border-radius:12px;background:rgba(255,255,255,.85);transition:border-color .15s,background .15s}
+  .b24-select:focus-within{border-color:var(--accent);background:#fff}
+  .b24-select select{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:15px;
+    color:var(--ink);padding:10px 34px 10px 13px;cursor:pointer;-webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a7a88' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 11px center;background-size:16px 16px}
+  .b24-row .price-date{margin-top:8px}
+  @media(max-width:600px){.b24-ctl{flex-direction:column}.b24-ctl .deploy-toggle{width:auto}}
+
   /* блок «Ваши контакты» (только serv) */
-  .mgr-set{background:#eef2fe;border:0;border-radius:22px;padding:20px 24px;margin-bottom:18px}
+  .mgr-set{background:var(--ag-bg);border:0;border-radius:22px;padding:20px 24px;margin-bottom:18px}
   .mgr-set-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .mgr-set-title{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:800;color:#3b57d6}
-  .mgr-set-title svg{width:19px;height:19px;color:#3b57d6}
+  .mgr-set-title{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:800;color:var(--ag-ink)}
+  .mgr-set-title svg{width:19px;height:19px;color:var(--ag-ink)}
   .mgr-set-title span{font-weight:600;color:var(--muted)}
   .mgr-set-toggle{background:none;border:0;color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
   .mgr-set-sub{font-size:13px;color:var(--muted);margin:6px 0 14px}
@@ -70,27 +92,36 @@
   @media(max-width:600px){.mgr-set-grid{grid-template-columns:1fr}}
   .mgr-reminder{font-size:13px;color:var(--muted);background:var(--panel);border:0;border-radius:12px;padding:10px 14px;margin-bottom:16px}
   .mgr-reminder b{color:var(--ink)}
+  /* напоминание живёт над кнопкой скачивания — в тёмном блоке итога */
+  .summary .mgr-reminder{margin:16px 0 0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);color:rgba(255,255,255,.9)}
+  .summary .mgr-reminder b{color:#fff}
+  .summary .mgr-edit{color:#8ef0c6}
   .mgr-edit{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;padding:0 2px}
   .mgr-edit:hover{text-decoration:underline}
 
   /* группы — каждая со своим оттенком, без рамок */
   .group-crm,.group-agents,.group-other,.group-vibe{
     border-radius:24px;padding:20px 20px 10px;margin-bottom:18px;border:0}
-  .group-crm{background:#f5f1fd}
-  .group-agents{background:#eef2fe}
-  .group-other{background:#ecf7f3}
+  .group-crm{background:var(--crm-bg)}
+  .group-agents{background:var(--ag-bg)}
+  .group-other{background:var(--oth-bg)}
   .group-vibe{background:linear-gradient(135deg,#fff3e3,#ffe7ce);box-shadow:0 12px 34px rgba(212,115,32,.13)}
   .group-label{display:flex;align-items:center;gap:9px;margin:2px 6px 16px;
     font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}
   .group-label svg{width:18px;height:18px}
-  .group-crm .group-label{color:#6d43d6}
-  .group-agents .group-label{color:#3b57d6}
-  .group-other .group-label{color:#12866f}
-  .group-vibe .group-label{color:#c2651f}
-  .group-crm .card.active{box-shadow:0 0 0 2px #7a4fe0,0 12px 30px rgba(122,79,224,.14)}
-  .group-agents .card.active{box-shadow:0 0 0 2px #4b64e0,0 12px 30px rgba(75,100,224,.14)}
-  .group-other .card.active{box-shadow:0 0 0 2px #1f9c86,0 12px 30px rgba(31,156,134,.14)}
-  .group-vibe .card.active{box-shadow:0 0 0 2px #d47320,0 12px 30px rgba(212,115,32,.14)}
+  .group-crm .group-label{color:var(--crm-ink)}
+  .group-agents .group-label{color:var(--ag-ink)}
+  .group-other .group-label{color:var(--oth-ink)}
+  .group-vibe .group-label{color:var(--vibe-ink)}
+  .group-crm .card.active{box-shadow:0 0 0 2px var(--crm),0 12px 30px rgba(91,47,191,.14)}
+  .group-agents .card.active{box-shadow:0 0 0 2px var(--ag),0 12px 30px rgba(57,135,229,.16)}
+  .group-other .card.active{box-shadow:0 0 0 2px var(--oth),0 12px 30px rgba(18,134,111,.14)}
+  .group-vibe .card.active{box-shadow:0 0 0 2px var(--vibe),0 12px 30px rgba(194,101,31,.15)}
+  /* чекбокс наследует цвет группы — принадлежность видна и на раскрытой карточке */
+  .group-crm .chk:checked{background:var(--crm);border-color:var(--crm)}
+  .group-agents .chk:checked{background:var(--ag);border-color:var(--ag)}
+  .group-other .chk:checked{background:var(--oth);border-color:var(--oth)}
+  .group-vibe .chk:checked{background:var(--vibe);border-color:var(--vibe)}
   .group-crm .card:last-child,.group-agents .card:last-child,.group-other .card:last-child,.group-vibe .card:last-child{margin-bottom:0}
 
   /* навигация — чипсы под цвета групп */
@@ -99,12 +130,12 @@
     border:0;border-radius:20px;padding:10px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
   .navbar .navchips{display:flex;flex-wrap:wrap;gap:7px;flex:1;min-width:0}
   .navbar .chip{font:inherit;font-size:13px;font-weight:700;color:var(--ink);background:var(--panel);
-    border:0;border-radius:20px;padding:8px 15px;cursor:pointer;white-space:nowrap;transition:.15s}
+    border:0;border-radius:20px;padding:8px 15px;cursor:pointer;white-space:nowrap;transition:filter .15s,background-color .15s}
   .navbar .chip:hover{filter:brightness(.97)}
-  .navbar .chip[data-go="sec-crm"]{color:#6d43d6;background:#f5f1fd}
-  .navbar .chip[data-go="sec-agents"]{color:#3b57d6;background:#eef2fe}
-  .navbar .chip[data-go="sec-other"]{color:#12866f;background:#ecf7f3}
-  .navbar .chip[data-go="sec-vibe"]{color:#c2651f;background:#ffe7ce}
+  .navbar .chip[data-go="sec-crm"]{color:var(--crm-ink);background:var(--crm-bg)}
+  .navbar .chip[data-go="sec-agents"]{color:var(--ag-ink);background:var(--ag-bg)}
+  .navbar .chip[data-go="sec-other"]{color:var(--oth-ink);background:var(--oth-bg)}
+  .navbar .chip[data-go="sec-vibe"]{color:var(--vibe-ink);background:var(--vibe-bg)}
   .navbar .chip.go-summary{color:#fff;background:var(--grad-cta)}
   .navbar .chip.go-summary:hover{filter:brightness(1.06)}
   .navbar .mini{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted);text-align:right}
@@ -119,7 +150,7 @@
   .card-head{display:flex;align-items:flex-start;gap:14px;padding:18px 22px;cursor:pointer;user-select:none;transition:background .15s}
   .card-head:hover{background:#fafafc}
   .chk{appearance:none;-webkit-appearance:none;min-width:22px;height:22px;margin-top:2px;
-    border:2px solid #d4d4dc;border-radius:7px;cursor:pointer;position:relative;background:#fff;transition:.15s}
+    border:2px solid #d4d4dc;border-radius:7px;cursor:pointer;position:relative;background:#fff;transition:background-color .15s,border-color .15s}
   .chk:checked{background:var(--accent);border-color:var(--accent)}
   .chk:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
   .card-title{flex:1;min-width:0}
@@ -135,8 +166,14 @@
   .tag.fot{background:var(--accent-soft);color:var(--accent)}
   .tag.rev{background:var(--teal-soft);color:var(--teal)}
   .tag.role{background:var(--panel);color:var(--muted);border:0}
-  .card-body{display:none;padding:0 22px 22px;border-top:1px solid #f2f2f5}
-  .card.active .card-body{display:block}
+  /* раскрытие карточки: height 0→auto через interpolate-size (Chrome 129+);
+     в остальных браузерах — мгновенно, как раньше. visibility прячет поля из таб-порядка. */
+  .card-body{display:block;height:0;overflow:clip;visibility:hidden;padding:0 22px;border-top:1px solid transparent;
+    transition:height .26s cubic-bezier(.22,1,.36,1),padding .26s cubic-bezier(.22,1,.36,1),
+      border-top-color .26s,visibility 0s .26s}
+  .card.active .card-body{height:auto;visibility:visible;padding:0 22px 22px;border-top-color:#f2f2f5;
+    transition:height .26s cubic-bezier(.22,1,.36,1),padding .26s cubic-bezier(.22,1,.36,1),
+      border-top-color .26s,visibility 0s}
 
   /* поля — плоские, в духе форм Битрикс24 */
   .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0 6px}
@@ -166,21 +203,15 @@
   .seg-del{background:none;border:0;color:#d23f3f;font-size:12.5px;cursor:pointer;font-weight:600}
   .seg-del:hover{text-decoration:underline}
   .addseg{margin-top:12px;background:none;border:1px dashed var(--accent);color:var(--accent);
-    border-radius:12px;padding:9px 15px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:.15s}
+    border-radius:12px;padding:9px 15px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:background-color .15s}
   .addseg:hover{background:var(--accent-soft)}
   .res-row .val.cost{color:#b34a2f}
   .res-row.int{border-top:1px dashed #d6e0ec;margin-top:6px;padding-top:10px}
-  .res-row.int .lbl{display:inline-flex;align-items:center;gap:5px}
-  .res-row.int .info-btn{padding:0}
-  .sum-grid .fullrow{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14.5px}
-  .sum-grid .fullrow .lbl2{display:inline-flex;align-items:center;gap:6px}
-  .sum-grid .fullrow.int .v{color:#ffd0a8;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .sum-grid .fullrow.costs .v{color:#ffd0a8;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .sum-grid .fullrow.net .v{color:#9ff5c4;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .sum-grid .fullrow.net.negative .v{color:#ffd0a8}
-  .summary .fullrow .info-btn{color:rgba(255,255,255,.85)}
-  .summary .fullrow .info-btn:hover{color:#fff;background:rgba(255,255,255,.15)}
   .res-row.int .lbl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .res-row.int .info-btn{padding:0}
+  /* .sum-grid .fullrow, .fullrow .v, .fullrow.net .v, .summary .info-btn — задаёт канон, здесь только int-специфика */
+  .sum-grid .fullrow .lbl2{display:inline-flex;align-items:center;gap:6px}
+  .sum-grid .fullrow.int .v{color:#ffcf9e}
   .int-note{font-size:12.5px;font-weight:600;color:#a9701f}
   .res-row.int .val.int-val{display:inline-flex;align-items:center;gap:5px}
   .int-in{width:104px;text-align:right;border:1.5px solid transparent;border-radius:10px;padding:5px 10px;font:inherit;font-size:14px;font-variant-numeric:tabular-nums;color:#b34a2f;background:#fff;outline:0}
@@ -188,6 +219,11 @@
   .int-cur{color:var(--muted);font-size:13px}
   .breakdown{font-size:12.5px;color:var(--muted);margin:2px 0 8px;padding-left:2px}
   .breakdown div{padding:2px 0}
+  .real-row{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);
+            border-top:1px dashed #dcdce2;margin-top:6px;padding:8px 0 1px}
+  .real-row b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .real-row .info-btn{padding:0 1px}
+  .real-row .info-btn svg{width:15px;height:15px}
   .note{font-size:13px;color:#7a5a1f;background:#fdf6ea;border:0;border-radius:12px;padding:11px 14px;margin-top:12px}
 
   /* итоговый блок — тёмный градиент */
@@ -201,6 +237,15 @@
   .sum-grid .num{font-size:15px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;color:#fff}
   .sum-grid .grand{font-family:Unbounded,Manrope,sans-serif;font-weight:800;font-size:22px}
   .sum-grid .grand.eco{background:var(--grad-num);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sum-grid .fullrow{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14.5px}
+  .sum-grid .fullrow .v{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .sum-grid .fullrow.costs .v{color:#ffcf9e}
+  .sum-grid .fullrow.net{flex-wrap:wrap;align-items:baseline;margin-top:2px}
+  .sum-grid .fullrow.net .v{font-family:Unbounded,Manrope,sans-serif;font-weight:800;letter-spacing:-.01em;
+    font-size:clamp(22px,4.2vw,30px);line-height:1.15;
+    background:var(--grad-num);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sum-grid .fullrow.net.negative .v{background:none;-webkit-background-clip:initial;background-clip:initial;
+    color:#ffcf9e;font-size:clamp(17px,3.2vw,21px)}
   .sum-line{grid-column:1/-1;height:1px;background:rgba(255,255,255,.18);margin:8px 0}
   .sum-grid .row-total .lbl{font-weight:800;color:#fff}
   .sum-grid .cost .lbl,.sum-grid .lbl.cost{color:rgba(255,255,255,.72);font-size:13.5px}
@@ -209,7 +254,7 @@
     background:rgba(120,230,190,.16);border:1px solid rgba(160,240,205,.38);border-radius:14px;padding:12px 15px;font-size:14px;color:#eafff7}
   .verdict svg{width:18px;height:18px;color:#8ef0c6;flex:none}
   .verdict b{color:#8ef0c6}
-  .verdict.negative b{color:#ffd0a8}
+  .verdict.negative b{color:#ffcf9e}
   .summary .empty{color:rgba(255,255,255,.82);font-size:14.5px}
   .qual{margin-top:16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:13px 16px;font-size:14px;color:rgba(255,255,255,.9)}
   .summary .info-btn{color:rgba(255,255,255,.85)}
@@ -218,7 +263,7 @@
   /* кнопка скачивания — белая на тёмном */
   .dl-btn{margin-top:18px;width:100%;padding:14px;border:0;border-radius:14px;cursor:pointer;
     font-family:Manrope,sans-serif;font-size:15px;font-weight:800;color:hsl(232,55%,40%);background:#fff;
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background-color .15s}
   .dl-btn svg{width:18px;height:18px}
   .dl-btn:hover:not(:disabled){background:#eef1ff}
   .dl-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -227,6 +272,10 @@
   .modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(20,20,30,.5);
     display:flex;align-items:center;justify-content:center;padding:18px}
   .modal-overlay[hidden]{display:none}
+  .modal-overlay:not([hidden]){animation:ovl-in .18s ease-out}
+  .modal-overlay:not([hidden]) .modal{animation:pop-in .26s cubic-bezier(.22,1,.36,1)}
+  @keyframes ovl-in{from{opacity:0}}
+  @keyframes pop-in{from{opacity:0;transform:translateY(8px) scale(.98)}}
   .modal-overlay .modal{position:relative;background:#fff;border-radius:22px;max-width:480px;width:100%;padding:24px 26px;
     box-shadow:0 24px 70px rgba(20,20,30,.28);color:var(--ink)}
   .modal h3{margin:0 0 4px;font-family:Unbounded,Manrope,sans-serif;font-weight:700;font-size:18px}
@@ -236,18 +285,10 @@
   .modal-field input{width:100%;border:1.5px solid transparent;border-radius:12px;
     padding:11px 13px;font:inherit;font-size:15px;color:var(--ink);background:var(--panel);outline:0;transition:border-color .15s,background .15s}
   .modal-field input:focus{border-color:var(--accent);background:#fff}
-  .deploy-toggle{display:flex;gap:4px;background:var(--panel);border:0;border-radius:14px;padding:4px;margin:0 0 14px}
-  .dt-opt{flex:1;border:0;border-radius:11px;background:transparent;padding:9px 12px;font:inherit;font-family:Manrope,sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+  .deploy-toggle{display:flex;gap:4px;background:var(--panel);border:0;border-radius:14px;padding:4px;margin:0}
+  .dt-opt{flex:1;border:0;border-radius:11px;background:transparent;padding:9px 12px;font:inherit;font-family:Manrope,sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;transition:background-color .15s,color .15s,box-shadow .15s}
   .dt-opt.sel{background:var(--grad-cta);color:#fff;box-shadow:0 2px 8px rgba(40,40,90,.18)}
   .dt-opt:not(.sel):hover{color:var(--ink)}
-  .tariff-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
-  .tariff-opt{display:flex;align-items:center;gap:12px;border:1.5px solid transparent;background:var(--panel);
-    border-radius:13px;padding:12px 15px;cursor:pointer;transition:.15s}
-  .tariff-opt:hover{background:#eff0f3}
-  .tariff-opt.sel{border-color:var(--accent);background:var(--accent-soft)}
-  .tariff-opt input{accent-color:var(--accent);width:18px;height:18px;margin:0}
-  .tariff-opt .nm{flex:1;font-weight:700;font-size:14.5px}
-  .tariff-opt .pr{font-size:13px;color:var(--muted);white-space:nowrap;font-family:'JetBrains Mono',monospace}
   .price-date{margin-top:10px;font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
   .btn-primary{background:var(--grad-cta);color:#fff;border:0;border-radius:12px;padding:11px 18px;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
@@ -257,16 +298,21 @@
   .modal-x{position:absolute;top:12px;right:14px;background:none;border:0;font-size:24px;line-height:1;color:var(--faint);cursor:pointer;padding:0 4px}
   .modal-x:hover{color:var(--ink)}
   .modal .info-text{font-size:14.5px;color:var(--ink);line-height:1.65;margin:6px 0 0}
+  .modal .info-text p{margin:0 0 10px}
+  .modal .info-text p:last-child{margin-bottom:0}
+  .modal .info-text .info-src{font-size:12.5px;color:var(--muted);line-height:1.55;
+    border-top:1px dashed #dcdce2;padding-top:10px;margin-top:12px}
 
   /* оверлей-предпросмотр отчёта */
   .report-overlay{position:fixed;inset:0;z-index:1500;display:flex;flex-direction:column;background:#14141b}
   .report-overlay[hidden]{display:none}
+  .report-overlay:not([hidden]){animation:ovl-in .2s ease-out}
   .report-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
     padding:12px 18px;background:linear-gradient(135deg,hsl(258,52%,20%),hsl(226,55%,23%),hsl(190,52%,21%));
     color:#fff;box-shadow:0 8px 30px rgba(10,8,30,.4)}
   .report-bar-l{display:flex;align-items:center;gap:11px;min-width:0}
   .rb-x{flex:none;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
-    border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;font-size:21px;line-height:1;cursor:pointer;padding:0;transition:.15s}
+    border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;font-size:21px;line-height:1;cursor:pointer;padding:0;transition:background-color .15s}
   .rb-x:hover{background:rgba(255,255,255,.16)}
   .report-dot{width:9px;height:9px;border-radius:50%;flex:none;
     background:linear-gradient(90deg,#c7b8ff,#86ecd6);box-shadow:0 0 0 4px rgba(134,236,214,.14)}
@@ -275,11 +321,11 @@
   .report-bar-r{display:flex;align-items:center;gap:10px;flex:none}
   .rb-print{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;cursor:pointer;
     font:inherit;font-family:Manrope,sans-serif;font-size:14px;font-weight:800;color:hsl(232,55%,32%);
-    background:#fff;padding:10px 18px;transition:.15s}
+    background:#fff;padding:10px 18px;transition:background-color .15s}
   .rb-print:hover{background:#eef1ff}
   .rb-print svg{width:17px;height:17px}
   .rb-close{border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;
-    border-radius:12px;padding:9px 16px;font:inherit;font-family:Manrope,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+    border-radius:12px;padding:9px 16px;font:inherit;font-family:Manrope,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background-color .15s}
   .rb-close:hover{background:rgba(255,255,255,.14)}
   .report-stage{flex:1;min-height:0;overflow:auto;background:#e9e9f0}
   .report-frame{display:block;width:100%;height:100%;border:0;background:#e9e9f0}
@@ -287,7 +333,7 @@
 
   /* иконка «как считается» */
   .info-btn{background:none;border:0;cursor:pointer;color:var(--faint);padding:2px;
-    display:inline-flex;align-items:center;border-radius:6px;transition:.15s;vertical-align:middle}
+    display:inline-flex;align-items:center;border-radius:6px;transition:color .15s,background-color .15s;vertical-align:middle}
   .info-btn:hover{color:var(--accent);background:var(--accent-soft)}
   .info-btn svg{width:17px;height:17px}
   .res-head{display:flex;justify-content:flex-end;margin:-2px 0 4px}
@@ -317,6 +363,17 @@
   @media(max-width:560px){
     .sum-grid{grid-template-columns:1fr auto;gap:8px 14px}
     .sum-grid .h.year,.sum-grid .num.year{display:none}
+  }
+
+  /* клавиатурный фокус, выделение, каретка — браузерные поверхности в палитре */
+  :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+  .summary :focus-visible,.report-bar :focus-visible{outline-color:#fff}
+  ::selection{background:#dcdcfa;color:var(--ink)}
+  .summary ::selection,.report-bar ::selection{background:rgba(199,184,255,.35);color:#fff}
+  input,textarea{caret-color:var(--accent)}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-delay:0s!important}
   }
 </style>
 </head>
@@ -364,6 +421,18 @@
         <div class="field"><label>РОПов</label><div class="in"><input type="text" inputmode="decimal" class="num-in comp-in prefilled" data-comp="ropCount" value="1"><span class="suf">чел.</span></div></div>
         <div class="field"><label>ЗП РОПа</label><div class="in"><input type="text" inputmode="decimal" class="num-in comp-in prefilled" data-comp="ropSal" value="200 000"><span class="suf">₽/мес</span></div></div>
       </div>
+    </div>
+
+    <div class="b24-row">
+      <div class="b24-lbl">Ваш Битрикс24 — формат и текущий тариф <span>(с ним сравниваем эффект и стоимость подписки BitrixGPT)</span></div>
+      <div class="b24-ctl">
+        <div class="deploy-toggle" id="deploy-toggle">
+          <button type="button" class="dt-opt sel" data-mode="cloud">Облако</button>
+          <button type="button" class="dt-opt" data-mode="box">Коробка</button>
+        </div>
+        <div class="b24-select"><select id="tariff-sel" aria-label="Ваш текущий тариф Битрикс24"></select></div>
+      </div>
+      <div class="price-date" id="price-date"></div>
     </div>
   </div>
 
@@ -554,6 +623,47 @@ function calculateEconomics(fotMonth, firstYearCosts){
   };
 }
 
+/* ---------- Реализуемость экономии (коэффициенты) ----------
+   Не всё высвобожденное время превращается в результат. Опора — исследование NBER
+   «Time Savings When Working from Home» (Aksoy, Barrero, Bloom, Davis, Dolls, Zarate,
+   2023, 27 стран): удалённая работа освободила людям 72 минуты в день на дороге,
+   и в основную работу ушло 40% этого времени, остальное — в личные дела.
+   Базовая планка — 40%. Отклонения зависят от формы высвобождаемого времени: чем
+   крупнее и предсказуемее кусок, тем выше доля, которая доходит до результата.
+   Осколки по 3 минуты посреди задачи конвертируются хуже; работа, которая исчезает
+   целиком (поток обращений, обзвон), — лучше, т.к. это уже не время, а несделанная работа. */
+const REAL_INFO = "Опираемся на исследование NBER «Time Savings When Working from Home» "
+  + "(Aksoy, Barrero, Bloom, Davis, Dolls, Zarate, 2023, 27 стран): когда удалённая работа "
+  + "освободила людям 72 минуты в день на дороге, в основную работу ушло 40% этого времени, "
+  + "остальное — в личные дела. Мы применяем этот принцип к каждому сценарию отдельно: "
+  + "чем крупнее и предсказуемее высвобождаемый кусок времени, тем выше доля, которая доходит "
+  + "до результата. Базовая планка — 40%.";
+
+const REAL = {
+  1: {k:0.40, why:"Время возвращается кусками по 10 минут после каждого звонка — по форме это ближе всего к эталону исследования. Берём базовые 40%: столько высвобожденного времени работники реально направляют в работу."},
+  4: {k:0.50, why:"Прослушивание звонков — плановая обязанность, которая исчезает целым блоком в календаре, а не рассыпается на осколки. Освободившийся слот у руководителя заполняется работой надёжнее, чем время рядового сотрудника, поэтому берём выше базовых 40%."},
+  5: {k:1.00, why:"Коэффициент не применяется: это потенциал выручки, а не высвобожденное время."},
+  9: {k:0.25, why:"Экономия приходит осколками по 3 минуты посреди задач — самая труднореализуемая форма времени. Три минуты между делами почти не конвертируются в результат, поэтому берём заметно ниже базовых 40%."},
+  2: {k:0.70, why:"Здесь исчезает не время сотрудника, а сам поток обращений: закрытые ИИ тикеты не возвращаются в очередь. Это ближе к несделанной работе, чем к высвобожденному времени, и напрямую влияет на потребность в найме — поэтому выше базовых 40%."},
+  10:{k:0.30, why:"Поиск ответа прерывает основную задачу в непредсказуемый момент, и время возвращается кусками по 10 минут. Возврат в контекст съедает часть выигрыша, поэтому берём ниже базовых 40%."},
+  11:{k:0.35, why:"План дня утром и итог вечером — это граница рабочего дня, самая удобная форма для реинвестирования, но куски всего по 10–15 минут. Правильная форма при малом размере — чуть ниже базовых 40%."},
+  12:{k:0.70, why:"Обзвон по записи исчезает как функция целиком — администратор не «получает время обратно», эта работа просто перестаёт существовать. Эффект привязан к штату ресепшна, поэтому выше базовых 40%."},
+  3: {k:0.50, why:"Подготовка документа — плановая работа непрерывными блоками по 20 минут, самый крупный кусок среди всех сценариев. Крупное и предсказуемое время реинвестируется лучше, поэтому выше базовых 40%."},
+  6: {k:0.55, why:"Здесь возвращаются целые часы календаря: встреча короче, участник на неё не идёт вовсе, ассистент не пишет протокол. Крупные непрерывные куски реинвестируются лучше, поэтому берём выше базовых 40%."},
+  7: {k:0.30, why:"Ускорение размазано по всему рабочему дню мелкими долями и не собирается в непрерывный кусок — это самая труднореализуемая форма времени, поэтому берём ниже базовых 40%."},
+};
+const realOf = sc => (REAL[sc.id] ? REAL[sc.id].k : 1);
+
+// сноска о методике для печатного отчёта
+const METHOD_NOTE = "<div class='method'><b>О методике расчёта.</b> Не всё сэкономленное время "
+  + "превращается в результат: часть уходит на переключение между задачами и администрирование. "
+  + "Опираемся на исследование NBER «Time Savings When Working from Home» (Aksoy, Barrero, Bloom, "
+  + "Davis, Dolls, Zarate, 2023, 27 стран): когда удалённая работа освободила людям 72 минуты в день "
+  + "на дороге, в основную работу ушло 40% этого времени, остальное — в личные дела. Мы применяем "
+  + "этот принцип к каждому сценарию отдельно: чем крупнее и предсказуемее высвобождаемый кусок "
+  + "времени, тем выше доля, которая доходит до результата. Базовая планка — 40%; применённый "
+  + "коэффициент указан в каждом сценарии и уже учтён во всех суммах отчёта.</div>";
+
 /* ---------- Конфигурация сценариев (в порядке отображения) ---------- */
 const scenarios = [
   {
@@ -568,14 +678,14 @@ const scenarios = [
       {k:"calls", label:"Звонков в день на менеджера",      def:20,       suf:"шт."},
       {k:"time",  label:"Время обработки одного звонка",    def:10,       suf:"мин"},
       {k:"plan",  label:"План менеджера",                   def:1000000,  suf:"₽/мес", revOnly:true},
-      {k:"coef",  label:"Доля эффективно потраченного сэкономленного времени", def:0.3, suf:"доля", revOnly:true},
     ],
     compute:v=>{
       const savedMinDay = v.calls * v.time;
       const savedHoursMonth = savedMinDay * DAYS_MONTH / 60;
       const fot = savedHoursMonth * costHour(v.sal) * v.mgr;
       const freedShare = (savedMinDay / 60) / DAY_HOURS;
-      const rev = freedShare * v.plan * v.coef * v.mgr;
+      // доля реализуемой экономии применяется централизованно (CONV) — и к ФОТ, и к выручке
+      const rev = freedShare * v.plan * v.mgr;
       return {fot, rev};
     }
   },
@@ -660,7 +770,7 @@ const scenarios = [
     sub:"Сотрудники задают вопросы ИИ-агенту в чате и мгновенно получают ответы из загруженных регламентов и инструкций — вместо поиска по документам или отвлечения коллег.",
     link:"https://helpdesk.bitrix24.ru/open/27455370/",
     role:"Все сотрудники", effect:["fot"], agents:true,
-    note:"Считается только время спрашивающего сотрудника. Время отвлекаемых коллег-экспертов — дополнительный бонус, который мы намеренно не начисляем. Не дублируйте этот эффект со сценарием «BitrixGPT для всех» (+10%).",
+    note:"Считается только время спрашивающего сотрудника. Время отвлекаемых коллег-экспертов — дополнительный бонус, который мы намеренно не начисляем.",
     fields:[
       {k:"emp",   label:"Сотрудников, пользующихся базой знаний", def:50,     suf:"чел."},
       {k:"sal",   label:"Средний оклад сотрудника",               def:100000, suf:"₽/мес"},
@@ -681,7 +791,7 @@ const scenarios = [
     sub:"ИИ-агент утром формирует план дня по задачам и календарю, вечером собирает итог. Руководителям сводит десятки ежедневных отчётов команды в один one-pager.",
     link:"assistant-bitrix24.html",
     role:"Все сотрудники + руководители", effect:["fot"], agents:true,
-    note:"Считаются план дня/итог у сотрудников и сводный отчёт у руководителей (это разные затраты времени, не пересекаются). Не дублируйте со сценарием «BitrixGPT для всех» (+10%).",
+    note:"Считаются план дня/итог у сотрудников и сводный отчёт у руководителей (это разные затраты времени, не пересекаются).",
     fields:[
       {k:"emp",    label:"Всего сотрудников",                     def:50,     suf:"чел."},
       {k:"empSal", label:"Средний оклад сотрудника",              def:100000, suf:"₽/мес"},
@@ -746,18 +856,20 @@ const scenarios = [
       {k:"meet",  label:"Общих встреч в месяц",            def:8,      suf:"шт."},
       {k:"dur",   label:"Средняя длительность встречи",    def:60,     suf:"мин"},
       {k:"part",  label:"Среднее число участников",        def:6,      suf:"чел."},
+      {k:"cut",   label:"На сколько короче становятся встречи", def:0.15, suf:"доля"},
+      {k:"less",  label:"На сколько меньше участников",     def:0.15,   suf:"доля"},
       {k:"psal",  label:"Средний оклад участника",         def:100000, suf:"₽/мес"},
       {k:"asal",  label:"Оклад ассистента",               def:70000,  suf:"₽/мес"},
     ],
     compute:v=>{
       const cmP = costMinute(v.psal);
       const cmA = costMinute(v.asal);
-      const A = v.meet * v.dur * 0.15 * v.part * cmP;          // короче встречи на 15%
-      const B = v.meet * v.dur * (v.part * 0.15) * cmP;        // меньше участников на 15%
+      const A = v.meet * v.dur * v.cut * v.part * cmP;         // встречи короче
+      const B = v.meet * v.dur * (v.part * v.less) * cmP;      // участников меньше
       const C = v.meet * v.dur * cmA;                          // ассистент освобождается
       return {fot:A+B+C, rev:0, breakdown:[
-        ["А · короче встречи на 15%", A],
-        ["Б · меньше участников на 15%", B],
+        ["А · встречи короче", A],
+        ["Б · меньше участников", B],
         ["В · протокол и выводы (ассистент)", C],
       ]};
     }
@@ -772,19 +884,19 @@ const scenarios = [
     fields:[
       {k:"emp",   label:"Всего сотрудников",  def:10,     suf:"чел.", src:"empCount"},
       {k:"share", label:"Доля инициативных",  def:0.10,   suf:"доля"},
-      {k:"simp",  label:"Упрощение работы",   def:0.30,   suf:"доля"},
+      {k:"base",  label:"Сокращение времени на рутину у всех",          def:0.10, suf:"доля"},
+      {k:"simp",  label:"Сокращение времени на рутину у инициативных",  def:0.30, suf:"доля"},
       {k:"sal",   label:"Средняя ЗП",         def:100000, suf:"₽/мес", src:"empSal"},
     ],
     compute:v=>{
       const init = Math.round(v.emp * v.share);          // инициативные
       const non  = Math.max(0, v.emp - init);            // остальные
       const full = v.sal * TAX;                          // полная стоимость сотрудника
-      const fot  = non * full * 0.10 + init * full * v.simp;  // 10% на всех + доп. на инициативных
+      const fot  = non * full * v.base + init * full * v.simp;  // база на всех + доп. на инициативных
       return {fot, rev:0, breakdown:[
         ["Инициативных сотрудников", init, "int"],
       ]};
     },
-    qualitative:"После работы активных сотрудников бизнес-процессы компании в среднем ускоряются и повышают эффективность на ~20%."
   },
 ];
 
@@ -992,7 +1104,13 @@ function computeScenario(sc, st){
       else r.breakdown.forEach((b,j)=>{ if(breakdown[j]) breakdown[j][1] += b[1]; });
     }
   });
-  return {fot, rev, breakdown};
+  // Реализуемость: до результата доходит не всё высвобожденное время (см. CONV)
+  const real = realOf(sc);
+  const rawFot = fot, rawRev = rev;
+  fot *= real; rev *= real;
+  // счётчики людей (маркер "int") — не деньги, их не масштабируем
+  if(breakdown) breakdown.forEach(b=>{ if(b[2]!=="int") b[1] *= real; });
+  return {fot, rev, breakdown, real, rawFot, rawRev};
 }
 
 /* ---------- Данные о компании: автозаполнение полей блоков ---------- */
@@ -1088,6 +1206,11 @@ function recompute(){
       rows += row(rl+", месяц", fmtMoney(r.rev), "rev");
       rows += row(rl+", год", fmtMoney(revY), "rev");
     }
+    const realPct = Math.round(r.real*100);
+    if(realPct < 100){
+      rows += `<div class="real-row">В расчёте учтена реализуемая доля: <b>${realPct}%</b>`
+        + `<button class="info-btn" data-real="${sc.id}" aria-label="Почему такой коэффициент">${ICON_INFO}</button></div>`;
+    }
     rows += `<div class="res-row int"><span class="lbl">Настройка от интегратора (разово) <span class="int-note">· заполняется интегратором</span> <button class="info-btn" data-info="int-${sc.id}" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="val cost int-val"><input type="text" inputmode="decimal" class="int-in" data-int="${sc.id}" value="${groupFmt(String(integratorCost(sc)))}"><span class="int-cur">₽</span></span></div>`;
     resEl.innerHTML = rows;
   });
@@ -1146,6 +1269,7 @@ document.addEventListener("input", function(e){
 
 /* ---------- Итоговый блок ---------- */
 function renderSummary(fot, rev, pot, any, qual, integ){
+  integ = Math.max(0, Number(integ) || 0);   // разовые услуги интегратора по выбранным сценариям, ₽
   const el = document.getElementById("summary-body");
   document.getElementById("dl-btn").disabled = !any;
   if(!any){
@@ -1167,18 +1291,14 @@ function renderSummary(fot, rev, pot, any, qual, integ){
       <div class="num">${fmtMoney(pot)}</div>
       <div class="num year">${fmtMoney(pot*12)}</div>`:''}
       <div class="sum-line"></div>
+      <div class="fullrow costs"><span>Минимальные затраты 1-го года</span><span class="v">− ${fmtMoney(economics.firstYearCosts - integ)}</span></div>
       <div class="fullrow int"><span class="lbl2">Настройка от интегратора (разово) <button class="info-btn" data-info="int-summary" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="v">− ${fmtMoney(integ)}</span></div>
-      <div class="lbl cost">Стоимость BitrixGPT</div>
-      <div class="num cost">от ${fmtMoney(COST_YEAR/12)}</div>
-      <div class="num cost year">от ${fmtMoney(COST_YEAR)}</div>
-      <div class="sum-line"></div>
-      <div class="fullrow costs"><span>Минимальные затраты 1-го года</span><span class="v">− ${fmtMoney(economics.firstYearCosts)}</span></div>
       <div class="fullrow net${netNegative?' negative':''}"><span>Чистая экономия ФОТ 1-го года</span><span class="v">${fmtMoney(economics.netFirstYear)}</span></div>
       <div class="verdict${netNegative?' negative':''}"${netNegative?' style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)"':''}>
         ${netNegative?'':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`}
         <span>${netNegative
-          ? `Экономия ФОТ пока не покрывает минимальные затраты 1-го года — не хватает <b>${fmtMoney(Math.abs(economics.netFirstYear))}</b>`
-          : `После затрат 1-го года остаётся <b>${fmtMoney(economics.netFirstYear)}</b> чистой экономии ФОТ`}</span>
+          ? `Экономия ФОТ пока не покрывает затраты 1-го года вместе с настройкой интегратора — не хватает <b>${fmtMoney(Math.abs(economics.netFirstYear))}</b>`
+          : `После затрат 1-го года и настройки интегратора остаётся <b>${fmtMoney(economics.netFirstYear)}</b> чистой экономии ФОТ`}</span>
       </div>
     </div>
   `;
@@ -1221,7 +1341,7 @@ function collectResults(){
     groupEcon[grp] += r.fot;   // потенциал (rev) в долю групп не входит — он показывается отдельным блоком
     items.push({
       num: idx+1, title: sc.title, sub: sc.sub, effect: sc.effect, revLabel: sc.revLabel, fot: r.fot, rev: r.rev,
-      group: grp,
+      group: grp, real: r.real,
     });
   });
   return {items, totalFot, totalRev, totalPot, totalInt, groupEcon};
@@ -1374,6 +1494,8 @@ function buildReportHtml(tariff, company, isBox){
     let eff="";
     if(it.effect.includes("fot")) eff += "<div class='fot'>Экономия ФОТ — <b>≈ "+fmtCompact(it.fot*12)+"</b> / год</div>";
     if(it.effect.includes("rev") && (it.revLabel==="Потенциал базы" || !HIDE_REVENUE)) eff += "<div class='rev'>"+revName(it)+" — <b>≈ "+fmtCompact(it.rev*12)+"</b> / год</div>";
+    const cPct = Math.round((it.real!=null ? it.real : 1)*100);
+    if(cPct < 100) eff += "<div class='creal'>Учтена реализуемая доля высвобожденного времени — <b>"+cPct+"%</b></div>";
     return "<div class='card'><div class='chead'><span class='cnum'>"+num2+"</span><span class='ctitle'>"+esc(it.title)+"</span></div>"
       + "<div class='cdesc'>"+esc(it.sub||"")+"</div><div class='ceff'>"+eff+"</div></div>";
   }).join("");
@@ -1601,6 +1723,11 @@ function buildReportHtml(tariff, company, isBox){
     + ".cdesc{color:var(--muted);font-size:9.5pt;line-height:1.5;margin-bottom:10px}"
     + ".ceff{display:flex;flex-direction:column;gap:3px;font-size:9.5pt;border-top:1px solid var(--line);padding-top:9px}"
     + ".ceff b{font-weight:800}.ceff .fot b{color:var(--blue)}.ceff .rev{color:var(--green)}.ceff .rev b{color:var(--green)}"
+    + ".creal{color:var(--muted);font-size:8.5pt;line-height:1.45;margin-top:5px;padding-top:5px;border-top:1px dotted var(--line)}"
+    + ".creal b{font-weight:700;color:var(--ink)}"
+    + ".method{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px;"
+    + "font-size:9pt;line-height:1.55;color:var(--muted)}"
+    + ".method b{color:var(--ink);font-weight:800}"
     // таблицы — числа моноширинные, по правому краю
     + ".tot{border:1px solid var(--line);border-radius:10px;overflow:hidden;break-inside:avoid}"
     + ".trow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 15px;border-bottom:1px solid var(--line);font-size:9.5pt;color:var(--muted)}"
@@ -1663,7 +1790,7 @@ function buildReportHtml(tariff, company, isBox){
     // 3) доля групп в экономии (donut, только при ≥2 группах)
     + donutSection
     // 4) по каждому сценарию
-    + "<section><p class='sec-eyebrow'>Экономия по сценариям</p>"+cards+"</section>"
+    + "<section><p class='sec-eyebrow'>Экономия по сценариям</p>"+cards+METHOD_NOTE+"</section>"
     // 4.5) потенциал роста — отдельным блоком, только при выборе повторных продаж
     + potBlock
     // 5) затраты и окупаемость (по экономии)
@@ -1785,74 +1912,42 @@ function openReport(tariff, company, isBox){
   logReport(tariff, company, isBox);   // фиксируем состав печатного отчёта (+ облако/коробка)
 }
 
-// модалка выбора тарифа
-const modal = document.createElement("div");
-modal.className = "modal-overlay"; modal.hidden = true;
-modal.innerHTML = "<div class='modal'>"
-  + "<h3>Ваш Битрикс24</h3>"
-  + "<p class='msub'>Выберите формат и тариф — нужно, чтобы сравнить эффект со стоимостью подписки BitrixGPT.</p>"
-  + "<div class='deploy-toggle'>"
-  +   "<button type='button' class='dt-opt sel' data-mode='cloud'>Облако</button>"
-  +   "<button type='button' class='dt-opt' data-mode='box'>Коробка</button>"
-  + "</div>"
-  + "<div class='tariff-list' id='tariff-list'></div>"
-  + "<div class='price-date'>Цены актуальны на "+formatConfigDate(PRICE_CONFIG.actualOn)+"</div>"
-  + "<div class='modal-actions'>"
-  + "<button class='btn-secondary' id='modal-cancel'>Отмена</button>"
-  + "<button class='btn-primary' id='modal-ok'>Сформировать документ</button>"
-  + "</div></div>";
-document.querySelector(".wrap").appendChild(modal);
-
+// выбор формата и текущего тарифа Битрикс24 — в блоке «Данные о компании»
 let deployMode = "cloud";
-const tariffListEl = modal.querySelector("#tariff-list");
+const deployToggleEl = document.getElementById("deploy-toggle");
+const tariffSelEl = document.getElementById("tariff-sel");
 function getCompanyEmployeeCount(){
   const empEl = document.querySelector('.comp-in[data-comp="empCount"]');
   return empEl ? parseNum(empEl.value) : 0;
 }
+function currentTariffList(){ return deployMode==="box" ? BOX_TARIFFS : TARIFFS; }
 function renderTariffList(){
-  const list = deployMode==="box" ? BOX_TARIFFS : TARIFFS;
-  const defaultId = list[0].id;
-  tariffListEl.innerHTML = list.map(t=>{
-    const selected = t.id===defaultId;
-    return "<label class='tariff-opt"+(selected?" sel":"")+"'>"
-    + "<input type='radio' name='tariff' value='"+t.id+"'"+(selected?" checked":"")+">"
-    + "<span class='nm'>"+t.name+"</span><span class='pr'>"+(t.price||"")+"</span></label>";
-  }).join("");
+  // при смене формата список меняется целиком — выбираем первый пункт нового набора
+  tariffSelEl.innerHTML = currentTariffList().map(t=>
+    "<option value='"+t.id+"'>"+t.name+(t.price ? " · "+t.price : "")+"</option>").join("");
 }
 renderTariffList();
+document.getElementById("price-date").textContent =
+  "Цены актуальны на "+formatConfigDate(PRICE_CONFIG.actualOn);
 
-// подсветка выбранной радио-опции (делегирование — переживает перерисовку списка)
-tariffListEl.addEventListener("change", e=>{
-  if(e.target.name!=="tariff") return;
-  tariffListEl.querySelectorAll(".tariff-opt").forEach(o=>o.classList.remove("sel"));
-  e.target.closest(".tariff-opt").classList.add("sel");
-});
 // переключатель Облако / Коробка — меняет набор тарифов
-modal.querySelectorAll(".dt-opt").forEach(b=>{
+deployToggleEl.querySelectorAll(".dt-opt").forEach(b=>{
   b.addEventListener("click", ()=>{
     if(deployMode===b.dataset.mode) return;
     deployMode = b.dataset.mode;
-    modal.querySelectorAll(".dt-opt").forEach(o=>o.classList.toggle("sel", o===b));
+    deployToggleEl.querySelectorAll(".dt-opt").forEach(o=>o.classList.toggle("sel", o===b));
     renderTariffList();
   });
 });
 
-document.getElementById("dl-btn").addEventListener("click", ()=>{ modal.hidden = false; });
-document.getElementById("modal-cancel").addEventListener("click", ()=>{ modal.hidden = true; });
-modal.addEventListener("click", e=>{ if(e.target===modal) modal.hidden = true; });
-document.getElementById("modal-ok").addEventListener("click", ()=>{
-  const checked = modal.querySelector("input[name=tariff]:checked");
-  if(!checked) return;
-  const isBox = deployMode==="box";
+document.getElementById("dl-btn").addEventListener("click", ()=>{
+  const tariff = currentTariffList().find(t=>t.id===tariffSelEl.value);
+  if(!tariff) return;
   const company = document.getElementById("company-name").value.trim();
-  modal.hidden = true;
-  const tariff = isBox
-    ? BOX_TARIFFS.find(t=>t.id===checked.value)
-    : TARIFFS.find(t=>t.id===checked.value);
-  openReport(tariff, company, isBox);
+  openReport(tariff, company, deployMode==="box");
 });
 
-/* ---------- Контакты менеджера (только serv): блок «Ваши контакты» + напоминание в модалке ---------- */
+/* ---------- Контакты менеджера (только serv): блок «Ваши контакты» + напоминание у кнопки отчёта ---------- */
 if(typeof integratorCost === "function"){
   const MGR_FIELDS = [
     ["name","Имя и фамилия"], ["role","Должность"], ["company","Компания"],
@@ -1872,12 +1967,12 @@ if(typeof integratorCost === "function"){
   const companyEl = document.getElementById("company");
   companyEl.parentNode.insertBefore(box, companyEl.nextSibling);
 
-  // напоминание в модалке (создаём заранее, чтобы на него могли ссылаться обработчики полей)
+  // напоминание над кнопкой отчёта (создаём заранее, чтобы на него могли ссылаться обработчики полей)
   const rem = document.createElement("div");
   rem.className = "mgr-reminder";
   rem.innerHTML = "Контакты в отчёте: <b class='mgr-rem-name'></b> <button type='button' class='mgr-edit'>изменить</button>";
-  const msub = modal.querySelector(".msub");
-  if(msub && msub.parentNode) msub.parentNode.insertBefore(rem, msub.nextSibling);
+  const dlBtnEl = document.getElementById("dl-btn");
+  dlBtnEl.parentNode.insertBefore(rem, dlBtnEl);
   const updateReminder = ()=>{ const s=mgrLoad(); rem.querySelector(".mgr-rem-name").textContent = (s.name && s.name.trim()) ? s.name : "не заполнены"; };
 
   // поля (предзаполнены эффективными значениями; сохранение по вводу)
@@ -1898,9 +1993,8 @@ if(typeof integratorCost === "function"){
     document.getElementById("mgr-toggle").textContent = collapsed ? "Развернуть" : "Свернуть";
   });
 
-  // «изменить» из модалки → закрыть модалку и открыть блок
+  // «изменить» → развернуть блок контактов и прокрутить к нему
   rem.querySelector(".mgr-edit").addEventListener("click", ()=>{
-    modal.hidden = true;
     box.classList.remove("collapsed");
     document.getElementById("mgr-toggle").textContent = "Свернуть";
     box.scrollIntoView({behavior:"smooth", block:"center"});
@@ -1922,10 +2016,10 @@ const INFO = {
   10:"Сколько раз в день сотрудники ищут ответы и сколько минут на это уходило. Учитываем процент вопросов, на которые отвечает ИИ. Переводим в часы за месяц и умножаем на стоимость часа. Итог — по всем сотрудникам.",
   11:"Сотрудники экономят время на планировании и сборе итога дня, руководители — на чтении отчётов. Минуты в день переводим в часы за месяц и умножаем на стоимость часа. Складываем эффект сотрудников и руководителей.",
   12:"Экономия ФОТ: число обзвонов в месяц (записей × звонков на запись) × минуты на звонок, в часах × стоимость часа администратора. Плюс выручка от возвращённых неявок: записей × процент неявок × процент возвращённых × средний чек.",
-  6:"Транскрибация встреч даёт три эффекта: встречи короче на 15%, участников меньше на 15% и ассистент не тратит время на протокол. Каждый эффект — это минуты × число встреч × стоимость минуты; всё суммируется.",
-  7:"Считаем в два слагаемых. Все сотрудники (полная стоимость = ЗП × 1,4) получают +10% эффективности. Инициативные (доля от общего числа) — дополнительно по проценту «упрощение работы» (по умолчанию 30%). Экономия = сумма обоих эффектов.",
+  6:"Транскрибация встреч даёт три эффекта: встречи становятся короче, участников нужно меньше и ассистент не тратит время на протокол. Оба процента задаются полями (по умолчанию 15% и 15%). Каждый эффект — это минуты × число встреч × стоимость минуты; всё суммируется.",
+  7:"Считаем в два слагаемых. У всех сотрудников (полная стоимость = ЗП × 1,4) время на рутину сокращается на базовый процент (по умолчанию 10%). У инициативных (доля от общего числа) — на свой, больший процент (по умолчанию 30%). Экономия = сумма обоих эффектов.",
 };
-const SUMMARY_INFO = "Экономию ФОТ складываем по всем выбранным сценариям и умножаем на 12. Из годовой экономии ФОТ вычитаем минимальные известные затраты первого года: подписку BitrixGPT и настройку интегратора. Потенциал и прирост выручки показываем дополнительно и в расчёт окупаемости не включаем. Стоимость часа работы = оклад на руки × 1,4 ÷ 176 рабочих часов.";
+const SUMMARY_INFO = "В каждом сценарии учтена реализуемая доля высвобожденного времени: не всё сэкономленное время превращается в результат, часть уходит на переключение и администрирование. Коэффициент указан в сценарии и уже включён в суммы. Экономию ФОТ складываем по всем выбранным сценариям и умножаем на 12. Из годовой экономии ФОТ вычитаем минимальные известные затраты первого года. Потенциал и прирост выручки показываем дополнительно и в расчёт окупаемости не включаем. Стоимость часа работы = оклад на руки × 1,4 ÷ 176 рабочих часов.";
 
 const INTEGRATOR_INFO = {
   1:"Интегратор настроит распознавание звонков и привязку расшифровок к карточкам сделок под вашу телефонию и воронки. Поможет задать, какие поля карточки заполнять автоматически, и обучит менеджеров работать с резюме звонка. Стоимость зависит от числа менеджеров, которых нужно подключить и обучить.",
@@ -1940,14 +2034,14 @@ const INTEGRATOR_INFO = {
   6:"Интегратор настроит транскрибацию встреч и автоматическое резюме под ваши форматы совещаний. Поможет задать, кому отправлять итоги и какие задачи ставить по результатам. Объём зависит от числа участников встреч.",
   7:"Интегратор проведёт онбординг сотрудников по работе с BitrixGPT и VibeCode: типовые сценарии в чате с нейросетью, генерация текстов, автоматизация рутины и процессов отдела. Настроит доступы и сопроводит первые сценарии до результата. Стоимость зависит от числа сотрудников.",
 };
-const INTEGRATOR_SUMMARY = "Это разовая стоимость услуг интегратора по всем выбранным сценариям: подключение, настройка под ваши процессы и обучение сотрудников. Значения задаёт интегратор в каждом сценарии (есть суммы по умолчанию, их можно изменить прямо в поле). Эти затраты вычитаются из выгоды первого года перед сравнением со стоимостью подписки.";
+const INTEGRATOR_SUMMARY = "Это разовая стоимость услуг интегратора по всем выбранным сценариям: подключение, настройка под ваши процессы и обучение сотрудников. Значения задаёт интегратор в каждом сценарии (есть суммы по умолчанию, их можно изменить прямо в поле). Эти затраты добавляются к затратам первого года и уменьшают чистую экономию ФОТ.";
 
 const infoModal = document.createElement("div");
 infoModal.className = "modal-overlay"; infoModal.hidden = true;
 infoModal.innerHTML = "<div class='modal'>"
   + "<button class='modal-x' id='info-x' aria-label='Закрыть'>×</button>"
   + "<h3 id='info-title'>Как считается</h3>"
-  + "<p class='info-text' id='info-text'></p>"
+  + "<div class='info-text' id='info-text'></div>"
   + "<div class='modal-actions'><button class='btn-primary' id='info-ok'>Понятно</button></div>"
   + "</div>";
 document.querySelector(".wrap").appendChild(infoModal);
@@ -1989,10 +2083,19 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeDrawer(); i
 function openInfo(key){
   const t = document.getElementById("info-title");
   const x = document.getElementById("info-text");
-  if(key==="summary"){ t.textContent = "Как считается итоговая экономика"; x.textContent = SUMMARY_INFO; }
-  else if(key==="int-summary"){ t.textContent = "Настройка от интегратора"; x.textContent = INTEGRATOR_SUMMARY; }
-  else if(String(key).indexOf("int-")===0){ const id = String(key).slice(4); const scn = scenarios.find(s=>String(s.id)===id); t.textContent = scn ? "Настройка от интегратора: " + scn.title : "Настройка от интегратора"; x.textContent = INTEGRATOR_INFO[id] || ""; }
-  else { const sc = scenarios.find(s=>String(s.id)===String(key)); t.textContent = sc ? "Как считается: " + sc.title : "Как считается"; x.textContent = INFO[key] || ""; }
+  const k = String(key);
+  if(k==="summary"){ t.textContent = "Как считается итоговая экономика"; x.textContent = SUMMARY_INFO; }
+  else if(k==="int-summary"){ t.textContent = "Настройка от интегратора"; x.textContent = INTEGRATOR_SUMMARY; }
+  else if(k.startsWith("int-")){ const id = k.slice(4); const scn = scenarios.find(s=>String(s.id)===id); t.textContent = scn ? "Настройка от интегратора: " + scn.title : "Настройка от интегратора"; x.textContent = INTEGRATOR_INFO[id] || ""; }
+  else if(k.startsWith("real:")){
+    const c = REAL[k.slice(5)];
+    t.textContent = "Почему такой коэффициент";
+    x.textContent = "";
+    const p1 = document.createElement("p"); p1.textContent = c ? c.why : "";
+    const p2 = document.createElement("p"); p2.className = "info-src"; p2.textContent = REAL_INFO;
+    x.append(p1, p2);
+  }
+  else { const sc = scenarios.find(s=>String(s.id)===k); t.textContent = sc ? "Как считается: " + sc.title : "Как считается"; x.textContent = INFO[key] || ""; }
   infoModal.hidden = false;
 }
 function closeInfo(){ infoModal.hidden = true; }
@@ -2014,7 +2117,7 @@ document.addEventListener("click", e=>{
     return;
   }
   const b = e.target.closest(".info-btn");
-  if(b) openInfo(b.dataset.info);
+  if(b) openInfo(b.dataset.real ? "real:"+b.dataset.real : b.dataset.info);
 });
 // иконка в статичные кнопки-«i» (итоговый блок)
 document.querySelectorAll(".info-btn:empty").forEach(b=> b.innerHTML = ICON_INFO);

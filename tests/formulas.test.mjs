@@ -145,7 +145,7 @@ test("tariff recommendation covers Enterprise upgrades and box licenses", () => 
 
 test("all default scenario formulas keep their reference values", () => {
   const expected = {
-    1: { fot: 58333.333333, rev: 125000 },
+    1: { fot: 58333.333333, rev: 416666.666667 },
     4: { fot: 28000, rev: 0 },
     5: { fot: 0, rev: 5000000 },
     9: { fot: 26250, rev: 0 },
@@ -166,6 +166,48 @@ test("all default scenario formulas keep their reference values", () => {
     assertClose(result.fot, sums.fot, `scenario ${id} fot`);
     assertClose(result.rev || 0, sums.rev, `scenario ${id} rev`);
   }
+});
+
+test("realization coefficients discount the raw scenario output", () => {
+  // Не всё высвобожденное время превращается в результат (NBER w30866): computeScenario
+  // применяет коэффициент реализуемости, а sc.compute отдаёт сырое значение.
+  for (const [id, expectedK] of Object.entries({ 1: 0.4, 4: 0.5, 9: 0.25, 2: 0.7, 10: 0.3, 11: 0.35, 12: 0.7, 3: 0.5, 6: 0.55, 7: 0.3 })) {
+    const scenario = scenarioById(Number(id));
+    const values = defaultsFor(scenario);
+    const raw = scenario.compute(values);
+    const result = calculator.computeScenario(scenario, { values, segments: [] });
+    assert.equal(result.real, expectedK, `scenario ${id} realization coefficient`);
+    assertClose(result.fot, raw.fot * expectedK, `scenario ${id} discounted fot`);
+    assertClose(result.rawFot, raw.fot, `scenario ${id} keeps raw fot`);
+  }
+
+  // блок «Потенциал базы» — это выручка, а не высвобожденное время: коэффициент не применяется
+  const potential = scenarioById(5);
+  const potentialResult = calculator.computeScenario(potential, { values: defaultsFor(potential), segments: [] });
+  assert.equal(potentialResult.real, 1);
+  assertClose(potentialResult.rev, 5000000, "potential is not discounted");
+});
+
+test("realization coefficient never scales headcount breakdown entries", () => {
+  const scenario = scenarioById(7);
+  const values = defaultsFor(scenario);
+  const result = calculator.computeScenario(scenario, { values, segments: [] });
+  const initiative = result.breakdown.find((row) => row[2] === "int");
+  assert.ok(initiative, "VibeCode exposes an integer headcount row");
+  assert.equal(initiative[1], 1, "headcount stays a headcount, not 0.3 of a person");
+  assertClose(result.fot, 168000 * 0.3, "VibeCode fot is discounted");
+});
+
+test("hidden percentages are editable fields, not magic numbers", () => {
+  // 15%/15% встреч и 10% рутины раньше были зашиты в формулы — теперь это вводные
+  const meetings = defaultsFor(scenarioById(6));
+  assert.equal(meetings.cut, 0.15);
+  assert.equal(meetings.less, 0.15);
+  const vibe = defaultsFor(scenarioById(7));
+  assert.equal(vibe.base, 0.10);
+  assert.equal(vibe.simp, 0.30);
+  // поле coef из блока звонков убрано — реализуемость задаётся централизованно
+  assert.ok(!scenarioById(1).fields.some((f) => f.k === "coef"), "block 1 no longer has its own coef field");
 });
 
 test("computeScenario sums the base values and additional segments", () => {
