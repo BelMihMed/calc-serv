@@ -1039,6 +1039,7 @@ scenarios.forEach((sc, idx)=>{
     if(e.target!==chk){ chk.checked = !chk.checked; }
     state[sc.id].selected = chk.checked;
     card.classList.toggle("active", chk.checked);
+    sessBlock(sc.title, chk.checked);
     recompute();
   });
 
@@ -1048,6 +1049,7 @@ scenarios.forEach((sc, idx)=>{
       const n = onNumInput(inp);
       state[sc.id].dirty[inp.dataset.k] = true;
       state[sc.id].values[inp.dataset.k] = inp.dataset.pct ? n/100 : n;  // % -> доля
+      sessField(sc.id, inp.dataset.k);
       recompute();
     });
   });
@@ -1072,6 +1074,7 @@ function addSegment(sc){
   const vals = {};
   sc.fields.forEach(f=> vals[f.k] = f.def);
   state[sc.id].segments.push(vals);
+  SESS.segments++; sessTouch();
   const number = state[sc.id].segments.length + 1;   // сегмент 1 — основной
   const block = document.createElement("div");
   block.className = "segment";
@@ -1139,6 +1142,7 @@ document.querySelectorAll(".comp-in").forEach(inp=>{
     inp.classList.remove("prefilled");   // ручной ввод — стандартный цвет
     onNumInput(inp);
     applyCompany(inp);
+    sessComp(inp.dataset.comp);
     recompute();
   });
 });
@@ -1160,7 +1164,8 @@ function plural(n, forms){ // forms = [один, два, пять]
 
 /* ---------- Пересчёт ---------- */
 function recompute(){
-  let totalFot=0, totalRev=0, totalPot=0, totalInt=0, anySelected=false, showQual=false, selectedCount=0;
+  let totalFot=0, totalRev=0, totalPot=0, anySelected=false, showQual=false, selectedCount=0;
+  let totalInt=0;   // разовые услуги интегратора: 0 в calc, заполняется в serv (см. integratorCost)
 
   scenarios.forEach(sc=>{
     const st = state[sc.id];
@@ -1187,8 +1192,7 @@ function recompute(){
     const showRev = revShown(sc);
     totalFot += r.fot;
     if(sc.revLabel==="Потенциал базы") totalPot += r.rev; else if(showRev) totalRev += r.rev;
-    const intCost = integratorCost(sc);
-    totalInt += intCost;
+    if(typeof integratorCost==="function") totalInt += integratorCost(sc);   // услуги (только в serv)
 
     let rows = `<div class="res-head"><button class="info-btn" data-info="${sc.id}" aria-label="Как считается экономия">${ICON_INFO}</button></div>`;
     if(r.breakdown){
@@ -1215,6 +1219,7 @@ function recompute(){
     resEl.innerHTML = rows;
   });
 
+  sessEcon(totalFot);   // пик экономии на экране — виден даже если отчёт не формировали
   renderSummary(totalFot, totalRev, totalPot, anySelected, showQual, totalInt);
 
   // обновление панели навигации
@@ -1269,7 +1274,7 @@ document.addEventListener("input", function(e){
 
 /* ---------- Итоговый блок ---------- */
 function renderSummary(fot, rev, pot, any, qual, integ){
-  integ = Math.max(0, Number(integ) || 0);   // разовые услуги интегратора по выбранным сценариям, ₽
+  integ = Math.max(0, Number(integ) || 0);   // разовые услуги интегратора по выбранным сценариям, ₽ (0 в calc)
   const el = document.getElementById("summary-body");
   document.getElementById("dl-btn").disabled = !any;
   if(!any){
@@ -1292,13 +1297,13 @@ function renderSummary(fot, rev, pot, any, qual, integ){
       <div class="num year">${fmtMoney(pot*12)}</div>`:''}
       <div class="sum-line"></div>
       <div class="fullrow costs"><span>Минимальные затраты 1-го года</span><span class="v">− ${fmtMoney(economics.firstYearCosts - integ)}</span></div>
-      <div class="fullrow int"><span class="lbl2">Настройка от интегратора (разово) <button class="info-btn" data-info="int-summary" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="v">− ${fmtMoney(integ)}</span></div>
+      ${integ>0?`<div class="fullrow int"><span class="lbl2">Настройка от интегратора (разово) <button class="info-btn" data-info="int-summary" aria-label="О настройке от интегратора">${ICON_INFO}</button></span><span class="v">− ${fmtMoney(integ)}</span></div>`:''}
       <div class="fullrow net${netNegative?' negative':''}"><span>Чистая экономия ФОТ 1-го года</span><span class="v">${fmtMoney(economics.netFirstYear)}</span></div>
       <div class="verdict${netNegative?' negative':''}"${netNegative?' style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)"':''}>
         ${netNegative?'':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`}
         <span>${netNegative
-          ? `Экономия ФОТ пока не покрывает затраты 1-го года вместе с настройкой интегратора — не хватает <b>${fmtMoney(Math.abs(economics.netFirstYear))}</b>`
-          : `После затрат 1-го года и настройки интегратора остаётся <b>${fmtMoney(economics.netFirstYear)}</b> чистой экономии ФОТ`}</span>
+          ? `Экономия ФОТ пока не покрывает ${integ>0?'затраты 1-го года вместе с настройкой интегратора':'минимальные затраты 1-го года'} — не хватает <b>${fmtMoney(Math.abs(economics.netFirstYear))}</b>`
+          : `После затрат 1-го года${integ>0?' и настройки интегратора':''} остаётся <b>${fmtMoney(economics.netFirstYear)}</b> чистой экономии ФОТ`}</span>
       </div>
     </div>
   `;
@@ -1329,7 +1334,7 @@ function fieldDisplay(f, val){
 
 function collectResults(){
   const items=[]; let totalFot=0, totalRev=0, totalPot=0, totalInt=0;
-  const groupEcon = {crm:0, agents:0, other:0};   // гарантированная экономия ФОТ по группам (₽/мес)
+  const groupEcon = {crm:0, agents:0, other:0, vibe:0};   // гарантированная экономия ФОТ по группам (₽/мес)
   scenarios.forEach((sc, idx)=>{
     const st = state[sc.id];
     if(!st.selected) return;
@@ -1337,7 +1342,7 @@ function collectResults(){
     totalFot += r.fot;
     if(sc.revLabel==="Потенциал базы") totalPot += r.rev; else if(revShown(sc)) totalRev += r.rev;
     if(typeof integratorCost==="function") totalInt += integratorCost(sc);   // услуги (только в serv)
-    const grp = sc.crm ? "crm" : sc.agents ? "agents" : "other";
+    const grp = sc.crm ? "crm" : sc.agents ? "agents" : sc.vibe ? "vibe" : "other";
     groupEcon[grp] += r.fot;   // потенциал (rev) в долю групп не входит — он показывается отдельным блоком
     items.push({
       num: idx+1, title: sc.title, sub: sc.sub, effect: sc.effect, revLabel: sc.revLabel, fot: r.fot, rev: r.rev,
@@ -1392,6 +1397,8 @@ function buildReportHtml(tariff, company, isBox){
   const dateStr = new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"});
   // домен-источник: serv → partner.bitrixgpt.online, calc → bitrixgpt.online
   const SITE = (typeof integratorCost === "function") ? "partner.bitrixgpt.online" : "bitrixgpt.online";
+  // логотип берём из фавикона калькулятора (data-URI уже вшит в <head>) — без дублирования картинки
+  const LOGO = (document.querySelector("link[rel='icon'][sizes='32x32']") || {}).href || "";
   const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const companyLine = company ? "<div class='co'>"+esc(company)+"</div>" : "";
   const empEl = document.querySelector('.comp-in[data-comp="empCount"]');
@@ -1487,6 +1494,9 @@ function buildReportHtml(tariff, company, isBox){
   };
   const approx = v => "≈ "+fmtCompact(v);   // «≈ 84,6 млн ₽» — оценка выглядит оценкой
 
+  // цвет закреплён за группой (печатные «чернила» палитры калькулятора) — и в полосе долей, и в номерах карточек
+  const GRP_COL = {crm:"#5b2fbf", agents:"#2b62c4", other:"#0e6e5c", vibe:"#9c4d15"};
+
   const revName = it => (it.revLabel || "Прирост выручки");
   // сквозная нумерация 01, 02… по выбранным; суммы округлённые (точные — только в таблице затрат)
   const cards = items.map((it,i)=>{
@@ -1495,8 +1505,8 @@ function buildReportHtml(tariff, company, isBox){
     if(it.effect.includes("fot")) eff += "<div class='fot'>Экономия ФОТ — <b>≈ "+fmtCompact(it.fot*12)+"</b> / год</div>";
     if(it.effect.includes("rev") && (it.revLabel==="Потенциал базы" || !HIDE_REVENUE)) eff += "<div class='rev'>"+revName(it)+" — <b>≈ "+fmtCompact(it.rev*12)+"</b> / год</div>";
     const cPct = Math.round((it.real!=null ? it.real : 1)*100);
-    if(cPct < 100) eff += "<div class='creal'>Учтена реализуемая доля высвобожденного времени — <b>"+cPct+"%</b></div>";
-    return "<div class='card'><div class='chead'><span class='cnum'>"+num2+"</span><span class='ctitle'>"+esc(it.title)+"</span></div>"
+    if(cPct < 100) eff += "<div class='creal'>Реализуемая доля высвобожденного времени — <b>"+cPct+"%</b></div>";
+    return "<div class='card'><div class='chead'><span class='cnum' style='color:"+(GRP_COL[it.group]||"#2064b4")+"'>"+num2+"</span><span class='ctitle'>"+esc(it.title)+"</span></div>"
       + "<div class='cdesc'>"+esc(it.sub||"")+"</div><div class='ceff'>"+eff+"</div></div>";
   }).join("");
 
@@ -1530,18 +1540,18 @@ function buildReportHtml(tariff, company, isBox){
   }
 
 
-  // 1) Доля групп в экономии — горизонтальная стековая полоса (только при ≥2 непустых группах)
+  // 1) Доля групп в экономии — горизонтальная стековая полоса (только при ≥2 непустых группах).
+  //    Цвет следует за группой, а не за местом в рейтинге: смена выбора сценариев не перекрашивает группы.
   const GRP = [
     {key:"crm",    name:"Сценарии в CRM"},
     {key:"agents", name:"ИИ-агенты"},
     {key:"other",  name:"Общие сценарии"},
+    {key:"vibe",   name:"VibeCode"},
   ];
-  const GBLUE = ["#2064b4", "#5a92cc", "#a7c9e8"];   // оттенки одного синего
-  const activeGrp = GRP.map(g=>({name:g.name, val:groupEcon[g.key]||0}))
+  const activeGrp = GRP.map(g=>({name:g.name, col:GRP_COL[g.key], val:groupEcon[g.key]||0}))
                        .filter(g=>g.val>0).sort((a,b)=>b.val-a.val);
   let donutSection = "";
   if(activeGrp.length>=2 && econ>0){
-    activeGrp.forEach((g,i)=>{ g.col = GBLUE[i] || GBLUE[GBLUE.length-1]; });
     const segs = activeGrp.map(g=>{
       const pct = g.val/econ*100;
       return "<div class='gseg' style='flex:"+pct.toFixed(2)+" 1 0;background:"+g.col+"'>"+Math.round(pct)+"%</div>";
@@ -1581,14 +1591,14 @@ function buildReportHtml(tariff, company, isBox){
       + "<div class='cmp-costwrap'><span class='cmp-cost-sliver' style='width:max("+costPct.toFixed(2)+"%,7px)'></span>"
       + "<span class='cmp-cost-val'>"+fmtMoney(costs1)+"</span><span class='cmp-note'>"+costNote+"</span></div></div>"
       + "<div class='cmp-cards'>"
-      + "<div class='cmp-card"+(netPos?" pos":"")+"'><div class='cc-l'>Чистая экономия 1-го года</div><div class='cc-v'>"+fmtMoney(netEcon)+"</div></div>"
+      + "<div class='cmp-card"+(netPos?" pos":"")+"'><div class='cc-l'>Чистая экономия 1-го года</div><div class='cc-v'>"+approx(netEcon)+"</div></div>"
       + (paybackTxt ? "<div class='cmp-card acc'><div class='cc-l'>Срок окупаемости</div><div class='cc-v'>"+paybackTxt+"</div></div>" : "")
       + "</div></div>";
   }
 
   // 4) CTA «Дальнейшие шаги». Версия выбирается флагом CTA_VARIANT:
   //    calc → самоподключение + заявка;  serv → карточка менеджера (apply_integrator.py меняет флаг).
-  const CTA_VARIANT = "serv";   /* карточка менеджера — данные в MANAGER ниже */
+  const CTA_VARIANT = "serv";   // @int:cta — apply_integrator.py переключает флаг на serv для calc-serv
 
   // Данные менеджера для serv-версии: блок «Ваши контакты» (localStorage) → дефолт MANAGER_DEFAULT.
   const MANAGER = getManager();
@@ -1645,7 +1655,6 @@ function buildReportHtml(tariff, company, isBox){
     + "<style>"
     + "*{box-sizing:border-box}"
     + "@page{size:A4;margin:14mm 16mm}"
-    + "@page{@bottom-center{content:'стр. ' counter(page) ' из ' counter(pages);font-family:'JetBrains Mono',monospace;font-size:8pt;color:#555}}"
     + ":root{--ink:#1a1a22;--muted:#565660;--faint:#74747d;--line:#e3e3e9;--panel:#f6f7f9;--blue:#2064b4;--blued:#17457c;--bluesoft:#eaf1fa;--green:#1e8a58;--greensoft:#e9f5ee;--orange:#c2621d;--orangesoft:#fbeee2}"
     + "html,body{margin:0}"
     + "body{font-family:Manrope,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);font-size:10.5pt;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
@@ -1654,10 +1663,11 @@ function buildReportHtml(tariff, company, isBox){
     + ".sheet{width:210mm;max-width:100%;min-height:297mm;margin:0 auto;background:#fff;padding:16mm 16mm 18mm;box-shadow:0 10px 40px rgba(20,20,35,.18);border-radius:2px}}"
     + "@media print{.sheet{width:auto;min-height:0;margin:0;padding:0;box-shadow:none}}"
     // шапка
-    + ".spectrum{height:4px;border-radius:2px;margin-bottom:20px;background:var(--blue)}"
+    + ".spectrum{height:4px;border-radius:2px;margin-bottom:20px;background:linear-gradient(90deg,hsl(259,63%,50%),hsl(232,68%,55%),hsl(212,75%,54%),hsl(196,80%,48%),hsl(176,66%,42%),hsl(160,60%,44%))}"
     + ".brandline{display:flex;align-items:center;gap:10px;margin-bottom:14px}"
     + ".logo{width:30px;height:30px;border-radius:8px;flex:none;background:var(--blue);display:flex;align-items:center;justify-content:center}"
     + ".logo svg{width:17px;height:17px;color:#fff}"
+    + "img.logo{background:#fff;border:1px solid var(--line);padding:3px;object-fit:contain}"
     + ".brandline .bt{font-size:8.5pt;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}"
     + ".co{font-weight:800;font-size:12pt;margin:0 0 4px;color:var(--ink)}"
     + ".wordmark{font-family:Unbounded,Manrope,sans-serif;font-weight:800;font-size:24pt;line-height:1.1;letter-spacing:-.015em;margin:0;color:var(--blue)}"
@@ -1773,14 +1783,22 @@ function buildReportHtml(tariff, company, isBox){
     + "<div class='sheet'>"
     + "<div class='spectrum'></div>"
     + "<header>"+companyLine
-    + "<div class='brandline'><span class='logo'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v18M3 12h18'/></svg></span><span class='bt'>Bitrix24 · BitrixGPT · Экономический эффект</span></div>"
+    + "<div class='brandline'>"
+    + (LOGO ? "<img class='logo' src='"+LOGO+"' alt=''>"
+            : "<span class='logo'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3v18M3 12h18'/></svg></span>")
+    + "<span class='bt'>Bitrix24 · BitrixGPT · Экономический эффект</span></div>"
     + "<h1 class='wordmark'>Экономический эффект BitrixGPT</h1>"
     + "<div class='meta'>Отчёт сформирован "+dateStr+" · "+(isBox?"коробка · ":"")+"тариф «"+esc(tariff.name)+"»</div></header>"
-    // 1) ГЛАВНОЕ ЧИСЛО — только гарантированная экономия ФОТ
+    // 1) ГЛАВНОЕ ЧИСЛО — чистая экономия 1-го года, то же, что в итоге калькулятора.
+    //    Если затраты съедают экономию (net<=0) — валовая, чтобы герой не был отрицательным.
     + "<section><div class='hero'>"
-    + "<div class='hl'>Экономия ФОТ за год</div>"
-    + "<div class='hnum'>"+approx(econYear)+"</div>"
-    + "<div class='hm'>"+approx(econ)+" / мес</div>"
+    + (netEcon>0 && costs1>0
+        ? "<div class='hl'>Чистая экономия ФОТ · 1-й год</div>"
+          + "<div class='hnum'>"+approx(netEcon)+"</div>"
+          + "<div class='hm'>экономия "+approx(econYear)+" / год − затраты "+approx(costs1)+"</div>"
+        : "<div class='hl'>Экономия ФОТ за год</div>"
+          + "<div class='hnum'>"+approx(econYear)+"</div>"
+          + "<div class='hm'>"+approx(econ)+" / мес</div>")
     + (paybackTxt && costs1>0 ? "<div class='hv'><svg viewBox='0 0 24 24' fill='none' stroke='var(--green)' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' style='width:17px;height:17px'><path d='M20 6 9 17l-5-5'/></svg><span>"+(paybackMonths<1 ? "Окупается <span class='vb'>менее чем за месяц</span>" : "Окупается за <span class='vb'>"+paybackTxt+"</span>")+" · затраты — "+costPctTxt+" годовой экономии</span></div>" : "")
     + "</div></section>"
     // строка «в двух словах» — для не-аналитика и пересылки
@@ -1890,6 +1908,7 @@ function logReport(tariff, companyName, isBox){ sendLog(buildLogRecord(tariff, c
 
 // Клик «Подробнее» по лендингу → вкладка «Лендинги»
 function logLanding(url, title){
+  SESS.landings.add(url); sessTouch();
   sendLog({
     type:     "landing",
     ts:       new Date().toISOString(),
@@ -1902,6 +1921,66 @@ function logLanding(url, title){
   });
 }
 
+/* ---------- Журнал сессий: что настраивают, даже если отчёт не сформировали ----------
+   Одна сессия = один заход. Снимок уходит при уходе со страницы (sendBeacon переживает
+   закрытие вкладки) и по таймеру-страховке. Приёмник только ДОБАВЛЯЕТ строки — дашборд
+   группирует по sessionId и берёт последний снимок. Так ничего не теряется и не тормозит. */
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v===null ? d : v; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+const rndId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+
+const SESS = (function(){
+  let vid = lsGet("bgpt_vid", "");
+  if(!vid){ vid = rndId(); lsSet("bgpt_vid", vid); }          // аноним-ID браузера (не персональные данные)
+  const visits = (parseInt(lsGet("bgpt_visits", "0"), 10) || 0) + 1;
+  lsSet("bgpt_visits", String(visits));
+  return { visitorId: vid, sessionId: rndId(), visitNo: visits,
+    start: Date.now(), lastAct: Date.now(),
+    fields: new Set(), compFields: new Set(), blocks: new Set(), infos: new Set(), landings: new Set(),
+    segments: 0, edits: 0, maxEconYear: 0,
+    report: false, tariff: "", deploy: "",
+    changed: false, sent: 0 };
+})();
+
+function sessTouch(){ SESS.lastAct = Date.now(); SESS.changed = true; }
+function sessField(scId, key){ SESS.fields.add(scId + "." + key); SESS.edits++; sessTouch(); }
+function sessComp(key){ SESS.compFields.add(key); SESS.edits++; sessTouch(); }
+function sessBlock(title, on){ if(on) SESS.blocks.add(title); sessTouch(); }
+function sessInfo(key){ SESS.infos.add(String(key)); sessTouch(); }
+function sessEcon(fotMonth){ const y = Math.round((fotMonth||0)*12); if(y > SESS.maxEconYear) SESS.maxEconYear = y; }
+
+function sessRecord(reason){
+  return {
+    type:"session", reason:reason,
+    sessionId:SESS.sessionId, visitorId:SESS.visitorId, visitNo:SESS.visitNo,
+    ts:new Date(SESS.start).toISOString(),
+    durationSec:Math.round((SESS.lastAct - SESS.start)/1000),
+    version:(typeof integratorCost==="function") ? "calc-serv" : "calc",
+    iframe:inIframe(), host:inIframe() ? (document.referrer || "") : location.href,
+    device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "mobile" : "desktop",
+    blocks:[...SESS.blocks].join(" | "),        blocksCount:SESS.blocks.size,
+    fields:[...SESS.fields].join(" | "),        fieldsCount:SESS.fields.size,
+    compFields:[...SESS.compFields].join(" | "),
+    edits:SESS.edits, segments:SESS.segments,
+    infos:[...SESS.infos].join(" | "), landings:[...SESS.landings].join(" | "),
+    maxEconYear:SESS.maxEconYear,
+    reportGenerated:SESS.report, tariff:SESS.tariff, deploy:SESS.deploy,
+  };
+}
+
+function sendSession(reason){
+  if(!LOG_ENDPOINT) return;
+  const dwell = (Date.now() - SESS.start)/1000;
+  if(!SESS.changed && dwell < 5) return;      // отсекаем ботов и мгновенные закрытия
+  if(!SESS.changed && SESS.sent > 0) return;  // с прошлого снимка ничего не изменилось
+  SESS.changed = false; SESS.sent++;
+  sendLog(sessRecord(reason));
+}
+
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") sendSession("hidden"); });
+window.addEventListener("pagehide", ()=> sendSession("pagehide"));
+setInterval(()=> sendSession("timer"), 120000);   // страховка для долгих сессий
+
 function openReport(tariff, company, isBox){
   const html = buildReportHtml(tariff, company, isBox);
   const doc = reportFrame.contentDocument || reportFrame.contentWindow.document;
@@ -1910,6 +1989,10 @@ function openReport(tariff, company, isBox){
   document.body.style.overflow = "hidden";
   reportOverlay.querySelector(".report-stage").scrollTop = 0;
   logReport(tariff, company, isBox);   // фиксируем состав печатного отчёта (+ облако/коробка)
+  SESS.report = true;                                        // сессия дошла до отчёта
+  SESS.tariff = tariff ? (tariff.name || tariff.id || "") : "";
+  SESS.deploy = isBox ? "box" : "cloud";
+  sessTouch(); sendSession("report");                        // снимок сразу, не дожидаясь ухода
 }
 
 // выбор формата и текущего тарифа Битрикс24 — в блоке «Данные о компании»
@@ -2084,6 +2167,7 @@ function openInfo(key){
   const t = document.getElementById("info-title");
   const x = document.getElementById("info-text");
   const k = String(key);
+  sessInfo(k);   // где просят пояснения — зоны трения
   if(k==="summary"){ t.textContent = "Как считается итоговая экономика"; x.textContent = SUMMARY_INFO; }
   else if(k==="int-summary"){ t.textContent = "Настройка от интегратора"; x.textContent = INTEGRATOR_SUMMARY; }
   else if(k.startsWith("int-")){ const id = k.slice(4); const scn = scenarios.find(s=>String(s.id)===id); t.textContent = scn ? "Настройка от интегратора: " + scn.title : "Настройка от интегратора"; x.textContent = INTEGRATOR_INFO[id] || ""; }
