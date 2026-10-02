@@ -1355,17 +1355,46 @@ function applyCompany(inp){
     if(target) target.value = groupFmt(String(val));
   });
 }
+/* Средняя ЗП считается автоматически — средневзвешенная по менеджерам и руководителям:
+   (менеджеры × ЗП менеджера + РОПы × ЗП РОПа) / (менеджеры + РОПы). Оклад остальных сотрудников в форме
+   не задан, поэтому «Сотрудников всего» в формуле не участвует. Поле можно править руками: пока значение
+   отличается от расчётного, оно считается ручным и пересчёт его не трогает; очистили поле — снова авто.
+   Признак ручной правки не хранится, а выводится сравнением значения с расчётом (detectEmpSalManual). */
+const EMP_SAL_DEPS = ["mgrCount","mgrSal","ropCount","ropSal"];
+let empSalManual = false;
+const compEl = k => document.querySelector('.comp-in[data-comp="'+k+'"]');
+function avgSalCalc(){
+  const g = k => { const el = compEl(k); return el ? parseNum(el.value) : 0; };
+  const n = g("mgrCount") + g("ropCount");
+  return n > 0 ? Math.round((g("mgrCount")*g("mgrSal") + g("ropCount")*g("ropSal")) / n) : 0;
+}
+function detectEmpSalManual(){
+  const el = compEl("empSal"); if(!el) return;
+  const v = parseNum(el.value), c = avgSalCalc();
+  empSalManual = v > 0 && c > 0 && v !== c;
+}
+function autoEmpSal(fromUser){
+  const el = compEl("empSal"), c = avgSalCalc();
+  if(!el || empSalManual || c <= 0) return;
+  el.value = groupFmt(String(c));
+  if(fromUser) el.classList.remove("prefilled");
+  applyCompany(el);
+}
 document.querySelectorAll(".comp-in").forEach(inp=>{
   applyCompany(inp);   // подставить предзаполненные значения в блоки на старте
+  inp.addEventListener("focusin", detectEmpSalManual);   // до правки: значение ручное или расчётное (после восстановления состояния)
   inp.addEventListener("input", ()=>{
     inp.classList.remove("prefilled");   // ручной ввод — стандартный цвет
     onNumInput(inp);
     applyCompany(inp);
+    if(inp.dataset.comp === "empSal"){ detectEmpSalManual(); autoEmpSal(true); }   // пусто → вернуть расчёт
+    else if(EMP_SAL_DEPS.includes(inp.dataset.comp)) autoEmpSal(true);
     sessComp(inp.dataset.comp);
     recompute();
     saveCompanyProfile();   // профиль компании общий для BitrixGPT и Коворка
   });
 });
+autoEmpSal(false);   // на старте «Средняя ЗП» = расчёт по менеджерам и руководителям (заготовки остаются курсивом)
 
 /* ---------- Общий профиль компании линейки (BitrixGPT ⇄ Коворк/Код) ----------
    Блок «Данные о компании» один и тот же на обеих страницах, а localStorage у bitrixgpt.online и
